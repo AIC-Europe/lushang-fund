@@ -682,8 +682,7 @@ function _collectState(){
     plans:pd,
     reimbDaily:(typeof REIMB_DATA!=="undefined"?REIMB_DATA:[]),
     reimbTravel:(typeof TRAVEL_DATA!=="undefined"?TRAVEL_DATA:[]),
-    datevImported:(typeof DATEV_IMPORTED!=="undefined"?DATEV_IMPORTED:[]),
-    reimbCleared:(function(){try{return localStorage.getItem("ls-reimb-cleared")==="1";}catch(e){return false;}})()
+    datevImported:(typeof DATEV_IMPORTED!=="undefined"?DATEV_IMPORTED:[])
   };
 }
 function _applyState(s){
@@ -695,17 +694,8 @@ function _applyState(s){
     if(Array.isArray(s.rc)){RC=s.rc;RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});if(typeof migrateRC_daG==="function"&&migrateRC_daG())window._rcMigratedInApply=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())window._rcMigratedInApply=true;}
     if(s.ledger&&typeof s.ledger==="object"){for(var lk in s.ledger)LEDGER[lk]=s.ledger[lk];}
     if(s.plans){Object.keys(s.plans).forEach(function(k){var i=parseInt(k);if(P[i]){if(s.plans[k].pr)P[i].pr=s.plans[k].pr;if(s.plans[k].pp)P[i].pp=s.plans[k].pp;}});}
-    // 先处理reimbCleared标志, 再处理报销数据(避免先恢复再清空的时序问题)
-    if(s.reimbCleared!==undefined){try{if(s.reimbCleared)localStorage.setItem("ls-reimb-cleared","1");else localStorage.removeItem("ls-reimb-cleared");}catch(e){}}
-    if(Array.isArray(s.reimbDaily)){
-      // 如果云端标记已清空, 则忽略可能残留的旧数据, 强制清空
-      if(s.reimbCleared){REIMB_DATA=[];REIMB_ID=1;}
-      else{REIMB_DATA=s.reimbDaily;REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});}
-    }
-    if(Array.isArray(s.reimbTravel)){
-      if(s.reimbCleared){TRAVEL_DATA=[];TRAVEL_ID=1;}
-      else{TRAVEL_DATA=s.reimbTravel;TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});}
-    }
+    if(Array.isArray(s.reimbDaily)){REIMB_DATA=s.reimbDaily;REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});}
+    if(Array.isArray(s.reimbTravel)){TRAVEL_DATA=s.reimbTravel;TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});}
     if(Array.isArray(s.datevImported)){DATEV_IMPORTED=s.datevImported;if(typeof rebuildDR==="function")rebuildDR();}
     // 同步落地到本地, 保证离线时也有最新副本
     try{savDLocal();if(typeof savReimb==="function")savReimbLocal();if(typeof savDatevLocal==="function")savDatevLocal();}catch(e){}
@@ -946,31 +936,18 @@ function reimbSortArr(arr){if(!reimbSortKey)return arr.slice().sort(function(a,b
 function reimbTh(label,key){var arrow=reimbSortKey===key?(reimbSortDir==="asc"?" ▲":" ▼"):"";return'<th style="font-size:9px;cursor:pointer;user-select:none;white-space:nowrap" onclick="toggleReimbSort(\''+key+'\')">'+label+'<span style="font-size:8px;color:#C8963E">'+arrow+'</span></th>';}
 var reimbEditItem=null;var reimbEditSection="";
 function savReimb(){savReimbLocal();if(!_cloudApplying)cloudPush();}
-function lodReimb(){try{var cleared=localStorage.getItem("ls-reimb-cleared")==="1";var changed=false;var d=localStorage.getItem("ls-reimb-daily2");var dArr=d?JSON.parse(d):[];if(dArr.length>0){REIMB_DATA=dArr;}else if(!cleared&&typeof REIMB_DATA_INIT!=="undefined"&&REIMB_DATA_INIT.length>0){REIMB_DATA=JSON.parse(JSON.stringify(REIMB_DATA_INIT));changed=true;}else{REIMB_DATA=[];}REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});var t=localStorage.getItem("ls-reimb-travel2");var tArr=t?JSON.parse(t):[];if(tArr.length>0){TRAVEL_DATA=tArr;}else if(!cleared&&typeof TRAVEL_DATA_INIT!=="undefined"&&TRAVEL_DATA_INIT.length>0){TRAVEL_DATA=JSON.parse(JSON.stringify(TRAVEL_DATA_INIT));changed=true;}else{TRAVEL_DATA=[];}TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});if(changed)savReimb();}catch(e){}}
+function lodReimb(){try{var d=localStorage.getItem("ls-reimb-daily2");REIMB_DATA=d?JSON.parse(d):[];REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});var t=localStorage.getItem("ls-reimb-travel2");TRAVEL_DATA=t?JSON.parse(t):[];TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});}catch(e){}}
 // 清空全部员工报销数据(出差报销+日常垫付), 持久化并同步。设置cleared标志避免重载后种子数据回填。
 function clearAllReimb(){
   if(!confirm("确认清空全部员工报销数据？\n\n这将删除所有出差报销和日常垫付记录(不可恢复)。"))return;
-  if(!confirm("第二次确认：清空后种子示例数据也不会再自动恢复，是否继续？"))return;
+  if(!confirm("第二次确认：删除后不可恢复，是否继续？"))return;
   REIMB_DATA=[];TRAVEL_DATA=[];REIMB_ID=1;TRAVEL_ID=1;
-  try{localStorage.setItem("ls-reimb-cleared","1");}catch(e){}
-  savReimbLocal();
-  // 强制立即推送到云端(不走防抖), 确保其他设备收到清空指令
-  if(USE_CLOUD&&rtdb){
-    try{
-      var payload=_collectState();
-      payload._at=Date.now();CLOUD_LAST_AT=payload._at;
-      payload._by=U||"unknown";payload._client=CLOUD_CLIENT_ID;
-      rtdb.ref("lushang/state").set(payload).then(function(){
-        toast("已清空全部员工报销数据(已同步云端)");
-      }).catch(function(e){toast("本地已清空, 云端同步失败: "+e.message);});
-      // 同时清除云端历史数据包中的报销种子, 彻底防止回填
-      rtdb.ref("lushang/histdata/extra").remove();
-    }catch(e){}
-  }else{toast("已清空全部员工报销数据");}
-  render();
+  savReimb();toast("已清空全部员工报销数据");render();
+  // 同时清除云端历史数据包中的报销种子(如有), 彻底防止回填
+  if(USE_CLOUD&&rtdb){try{rtdb.ref("lushang/histdata/extra").remove();}catch(e){}}
 }
 function delReimbItem(section,id){if(!confirm("确认删除？"))return;if(section==="daily"){REIMB_DATA=REIMB_DATA.filter(function(r){return r.id!==id});}else{TRAVEL_DATA=TRAVEL_DATA.filter(function(r){return r.id!==id});}savReimb();render();}
-function saveReimbItem(section,item){try{localStorage.removeItem("ls-reimb-cleared");}catch(e){}if(section==="daily"){if(item.id){REIMB_DATA=REIMB_DATA.map(function(r){return r.id===item.id?item:r});}else{item.id=REIMB_ID++;REIMB_DATA.push(item);}}else{if(item.id){TRAVEL_DATA=TRAVEL_DATA.map(function(r){return r.id===item.id?item:r});}else{item.id=TRAVEL_ID++;TRAVEL_DATA.push(item);}}savReimb();reimbEditItem=null;reimbEditSection="";render();}
+function saveReimbItem(section,item){if(section==="daily"){if(item.id){REIMB_DATA=REIMB_DATA.map(function(r){return r.id===item.id?item:r});}else{item.id=REIMB_ID++;REIMB_DATA.push(item);}}else{if(item.id){TRAVEL_DATA=TRAVEL_DATA.map(function(r){return r.id===item.id?item:r});}else{item.id=TRAVEL_ID++;TRAVEL_DATA.push(item);}}savReimb();reimbEditItem=null;reimbEditSection="";render();}
 function openReimbForm(section,item){reimbEditSection=section;reimbEditItem=item||null;render();}
 function closeReimbForm(){reimbEditItem=null;reimbEditSection="";render();}
 function reimbFmt(v){if(v==null||v==="")return"—";var n=parseFloat(v);if(isNaN(n))return"—";return n.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -1534,20 +1511,7 @@ function _applyHistPack(pack,source){
   if(typeof rows==="string"){try{rows=JSON.parse(rows);}catch(e){rows=null;}}
   if(!Array.isArray(rows)||!rows.length)return false;
   DD=rows;DD_AT=pack.at||0;DD_STATUS="ready";DD_SOURCE=source;
-  // 报销种子数据: 仅当本机报销记录为空且未手动清空过时补种(兼容全新设备离线场景)
-  // 同时检查云端状态的reimbCleared标志(防止清空后从histPack回填)
-  try{
-    var cleared=localStorage.getItem("ls-reimb-cleared")==="1";
-    if(cleared)return true; // 已清空, 不再补种报销数据
-    if(!cleared&&Array.isArray(pack.reimbInit)&&pack.reimbInit.length&&typeof REIMB_DATA!=="undefined"&&REIMB_DATA.length===0){
-      REIMB_DATA=JSON.parse(JSON.stringify(pack.reimbInit));REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});
-      if(typeof savReimbLocal==="function")savReimbLocal();
-    }
-    if(!cleared&&Array.isArray(pack.travelInit)&&pack.travelInit.length&&typeof TRAVEL_DATA!=="undefined"&&TRAVEL_DATA.length===0){
-      TRAVEL_DATA=JSON.parse(JSON.stringify(pack.travelInit));TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});
-      if(typeof savReimbLocal==="function")savReimbLocal();
-    }
-  }catch(e){}
+  // 报销数据不再从histPack补种, 统一走云端同步(与TX/EXP/RC一致)
   if(typeof rebuildDR==="function")rebuildDR();
   if(typeof render==="function"){try{render();}catch(e){}}
   return true;
@@ -3660,7 +3624,6 @@ function downloadReimbTemplate(section){
 }
 // 数据导入: 读取xlsx, 按表头映射字段, 追加到对应数据集并保存/同步
 function importReimbExcel(section,input){
-  try{localStorage.removeItem("ls-reimb-cleared");}catch(e){}
   var file=input.files[0];if(!file){return;}
   if(typeof XLSX==="undefined"){toast("XLSX未加载");input.value="";return;}
   var isT=section==="travel";var cols=isT?REIMB_COLS_TRAVEL:REIMB_COLS_DAILY;

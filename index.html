@@ -731,6 +731,7 @@ function cloudStart(){
   try{ rtdb.ref(".info/connected").on("value",function(snap){ CLOUD_CONN=!!snap.val(); updateCloudBadge(); }); }catch(e){}
   // 数据实时监听
   rtdb.ref("lushang/state").on("value",function(snap){
+    _cloudInitDone=true; // 标记云端首次数据已到达
     var s=snap.val();
     if(!s){
       // 云端为空 → 用事务确保仅一端写入初始(种子/本地)数据, 避免多端竞争重复种子
@@ -952,7 +953,21 @@ function clearAllReimb(){
   if(!confirm("第二次确认：清空后种子示例数据也不会再自动恢复，是否继续？"))return;
   REIMB_DATA=[];TRAVEL_DATA=[];REIMB_ID=1;TRAVEL_ID=1;
   try{localStorage.setItem("ls-reimb-cleared","1");}catch(e){}
-  savReimb();toast("已清空全部员工报销数据");render();
+  savReimbLocal();
+  // 强制立即推送到云端(不走防抖), 确保其他设备收到清空指令
+  if(USE_CLOUD&&rtdb){
+    try{
+      var payload=_collectState();
+      payload._at=Date.now();CLOUD_LAST_AT=payload._at;
+      payload._by=U||"unknown";payload._client=CLOUD_CLIENT_ID;
+      rtdb.ref("lushang/state").set(payload).then(function(){
+        toast("已清空全部员工报销数据(已同步云端)");
+      }).catch(function(e){toast("本地已清空, 云端同步失败: "+e.message);});
+      // 同时清除云端历史数据包中的报销种子, 彻底防止回填
+      rtdb.ref("lushang/histdata/extra").remove();
+    }catch(e){}
+  }else{toast("已清空全部员工报销数据");}
+  render();
 }
 function delReimbItem(section,id){if(!confirm("确认删除？"))return;if(section==="daily"){REIMB_DATA=REIMB_DATA.filter(function(r){return r.id!==id});}else{TRAVEL_DATA=TRAVEL_DATA.filter(function(r){return r.id!==id});}savReimb();render();}
 function saveReimbItem(section,item){try{localStorage.removeItem("ls-reimb-cleared");}catch(e){}if(section==="daily"){if(item.id){REIMB_DATA=REIMB_DATA.map(function(r){return r.id===item.id?item:r});}else{item.id=REIMB_ID++;REIMB_DATA.push(item);}}else{if(item.id){TRAVEL_DATA=TRAVEL_DATA.map(function(r){return r.id===item.id?item:r});}else{item.id=TRAVEL_ID++;TRAVEL_DATA.push(item);}}savReimb();reimbEditItem=null;reimbEditSection="";render();}
@@ -1154,7 +1169,15 @@ function migrateRC_202506(){
 function getRCbyPid(pid){return RC.filter(function(r){return r.pid===pid;}).sort(function(a,b){return a.inv_date<b.inv_date?-1:a.inv_date>b.inv_date?1:0;});}
 function getRCsum(pid,type){var m=new Array(12).fill(0);RC.forEach(function(r){if(r.pid===pid&&r.type===type){var mo=parseInt((r.inv_date||r.pay_date||"").split("-")[1]||"0",10)-1;if(mo>=0&&mo<12)m[mo]+=r.gross;}});return m;}
 var ROLE="";
-function login(n,role){U=n;ROLE=role||"admin";document.getElementById("LS").style.display="none";document.getElementById("AS").style.display="flex";document.getElementById("UB").innerHTML='<div style="width:5px;height:5px;border-radius:50%;background:#0ea5e9"></div>'+n;lodD();lodReimb();if(typeof lodDatevLocal==="function")lodDatevLocal();var _migrated=false;if(migrateRC_daG())_migrated=true;if(migrateRC_202506())_migrated=true;if(_migrated){if(typeof savD==="function")savD();else if(typeof savDLocal==="function")savDLocal();if(typeof cloudPush==="function")cloudPush();}bNav();render();bMT();updateCloudBadge();if(!window._cloudStarted){window._cloudStarted=true;cloudStart();}if(typeof loadDD==="function")loadDD();if(typeof scheduleAutoSnapshot==="function")scheduleAutoSnapshot();checkBackupReminder();}
+var _cloudInitDone=false; // 云端首次数据是否已到达
+function login(n,role){U=n;ROLE=role||"admin";document.getElementById("LS").style.display="none";document.getElementById("AS").style.display="flex";document.getElementById("UB").innerHTML='<div style="width:5px;height:5px;border-radius:50%;background:#0ea5e9"></div>'+n;lodD();lodReimb();if(typeof lodDatevLocal==="function")lodDatevLocal();
+// 先启动云端监听(让云端数据有机会覆盖本地旧数据), 再延迟执行迁移
+bNav();render();bMT();updateCloudBadge();
+if(!window._cloudStarted){window._cloudStarted=true;_cloudInitDone=false;cloudStart();}
+// 迁移延迟到云端首次数据到达后执行(或2秒超时), 避免把本地旧数据推回云端
+function runMigrations(){var _m=false;if(typeof migrateRC_daG==="function"&&migrateRC_daG())_m=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())_m=true;if(_m){savDLocal();cloudPush();render();}}
+if(USE_CLOUD){var _mTimer=setTimeout(function(){runMigrations();},2500);var _origInit=_cloudInitDone;var _mCheck=setInterval(function(){if(_cloudInitDone){clearInterval(_mCheck);clearTimeout(_mTimer);setTimeout(runMigrations,200);}},100);setTimeout(function(){clearInterval(_mCheck);},5000);}else{runMigrations();}
+if(typeof loadDD==="function")loadDD();if(typeof scheduleAutoSnapshot==="function")scheduleAutoSnapshot();checkBackupReminder();}
 function doLogout(){if(!confirm("确认登出？"))return;U="";pg="dashboard";try{if(USE_CLOUD&&rtdb){rtdb.ref("lushang/state").off();rtdb.ref(".info/connected").off();}}catch(e){}window._cloudStarted=false;document.getElementById("AS").style.display="none";document.getElementById("LS").style.display="flex";}
 function switchSection(s){SECTION=s;NAV=getNav();pg=NAV[0][0];bNav();bMT();render();}
 function bNav(){var h='<div style="display:flex;margin:0 8px 10px;border-radius:6px;overflow:hidden;border:1px solid rgba(200,150,62,.3)">';

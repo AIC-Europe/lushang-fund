@@ -695,10 +695,18 @@ function _applyState(s){
     if(Array.isArray(s.rc)){RC=s.rc;RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});if(typeof migrateRC_daG==="function"&&migrateRC_daG())window._rcMigratedInApply=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())window._rcMigratedInApply=true;}
     if(s.ledger&&typeof s.ledger==="object"){for(var lk in s.ledger)LEDGER[lk]=s.ledger[lk];}
     if(s.plans){Object.keys(s.plans).forEach(function(k){var i=parseInt(k);if(P[i]){if(s.plans[k].pr)P[i].pr=s.plans[k].pr;if(s.plans[k].pp)P[i].pp=s.plans[k].pp;}});}
-    if(Array.isArray(s.reimbDaily)){REIMB_DATA=s.reimbDaily;REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});}
-    if(Array.isArray(s.reimbTravel)){TRAVEL_DATA=s.reimbTravel;TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});}
-    if(Array.isArray(s.datevImported)){DATEV_IMPORTED=s.datevImported;if(typeof rebuildDR==="function")rebuildDR();}
+    // 先处理reimbCleared标志, 再处理报销数据(避免先恢复再清空的时序问题)
     if(s.reimbCleared!==undefined){try{if(s.reimbCleared)localStorage.setItem("ls-reimb-cleared","1");else localStorage.removeItem("ls-reimb-cleared");}catch(e){}}
+    if(Array.isArray(s.reimbDaily)){
+      // 如果云端标记已清空, 则忽略可能残留的旧数据, 强制清空
+      if(s.reimbCleared){REIMB_DATA=[];REIMB_ID=1;}
+      else{REIMB_DATA=s.reimbDaily;REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});}
+    }
+    if(Array.isArray(s.reimbTravel)){
+      if(s.reimbCleared){TRAVEL_DATA=[];TRAVEL_ID=1;}
+      else{TRAVEL_DATA=s.reimbTravel;TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});}
+    }
+    if(Array.isArray(s.datevImported)){DATEV_IMPORTED=s.datevImported;if(typeof rebuildDR==="function")rebuildDR();}
     // 同步落地到本地, 保证离线时也有最新副本
     try{savDLocal();if(typeof savReimb==="function")savReimbLocal();if(typeof savDatevLocal==="function")savDatevLocal();}catch(e){}
   }catch(e){console.error("applyState:",e);}
@@ -1148,7 +1156,7 @@ function getRCsum(pid,type){var m=new Array(12).fill(0);RC.forEach(function(r){i
 var ROLE="";
 function login(n,role){U=n;ROLE=role||"admin";document.getElementById("LS").style.display="none";document.getElementById("AS").style.display="flex";document.getElementById("UB").innerHTML='<div style="width:5px;height:5px;border-radius:50%;background:#0ea5e9"></div>'+n;lodD();lodReimb();if(typeof lodDatevLocal==="function")lodDatevLocal();var _migrated=false;if(migrateRC_daG())_migrated=true;if(migrateRC_202506())_migrated=true;if(_migrated){if(typeof savD==="function")savD();else if(typeof savDLocal==="function")savDLocal();if(typeof cloudPush==="function")cloudPush();}bNav();render();bMT();updateCloudBadge();if(!window._cloudStarted){window._cloudStarted=true;cloudStart();}if(typeof loadDD==="function")loadDD();if(typeof scheduleAutoSnapshot==="function")scheduleAutoSnapshot();checkBackupReminder();}
 function doLogout(){if(!confirm("确认登出？"))return;U="";pg="dashboard";try{if(USE_CLOUD&&rtdb){rtdb.ref("lushang/state").off();rtdb.ref(".info/connected").off();}}catch(e){}window._cloudStarted=false;document.getElementById("AS").style.display="none";document.getElementById("LS").style.display="flex";}
-function switchSection(s){SECTION=s;NAV=getNav();pg=NAV[0][0];bNav();render();}
+function switchSection(s){SECTION=s;NAV=getNav();pg=NAV[0][0];bNav();bMT();render();}
 function bNav(){var h='<div style="display:flex;margin:0 8px 10px;border-radius:6px;overflow:hidden;border:1px solid rgba(200,150,62,.3)">';
 h+='<div onclick="switchSection(\'biz\')" style="flex:1;padding:6px 0;text-align:center;font-size:10px;font-weight:600;cursor:pointer;'+(SECTION==='biz'?'background:rgba(200,150,62,.25);color:#C8963E':'color:rgba(255,255,255,.4)')+'">📋 业务</div>';
 h+='<div onclick="switchSection(\'fin\')" style="flex:1;padding:6px 0;text-align:center;font-size:10px;font-weight:600;cursor:pointer;'+(SECTION==='fin'?'background:rgba(200,150,62,.25);color:#C8963E':'color:rgba(255,255,255,.4)')+'">📒 财务</div>';
@@ -1504,8 +1512,10 @@ function _applyHistPack(pack,source){
   if(!Array.isArray(rows)||!rows.length)return false;
   DD=rows;DD_AT=pack.at||0;DD_STATUS="ready";DD_SOURCE=source;
   // 报销种子数据: 仅当本机报销记录为空且未手动清空过时补种(兼容全新设备离线场景)
+  // 同时检查云端状态的reimbCleared标志(防止清空后从histPack回填)
   try{
     var cleared=localStorage.getItem("ls-reimb-cleared")==="1";
+    if(cleared)return true; // 已清空, 不再补种报销数据
     if(!cleared&&Array.isArray(pack.reimbInit)&&pack.reimbInit.length&&typeof REIMB_DATA!=="undefined"&&REIMB_DATA.length===0){
       REIMB_DATA=JSON.parse(JSON.stringify(pack.reimbInit));REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});
       if(typeof savReimbLocal==="function")savReimbLocal();

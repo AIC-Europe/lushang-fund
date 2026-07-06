@@ -104,6 +104,7 @@ td{padding:5px 8px;border-bottom:1px solid #F5F2EE;white-space:nowrap}
 .tx-del:hover{opacity:1}
 .toast{position:fixed;top:20px;right:20px;padding:10px 18px;background:#059669;color:#fff;border-radius:8px;font-size:11px;font-weight:600;z-index:999;transform:translateY(-20px);opacity:0;transition:all .3s;pointer-events:none}
 .toast.show{transform:translateY(0);opacity:1}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 @media(max-width:768px){.sb{display:none}#btab{display:flex!important;padding-bottom:calc(6px + env(safe-area-inset-bottom))}#secSwitch{display:flex!important}.ct{padding:12px 10px;padding-bottom:calc(72px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}td,th{padding:5px 6px;font-size:10px}.kpi-val{font-size:15px}.tx-grid{grid-template-columns:1fr 1fr}.lb{width:94vw;max-width:500px;padding:30px 20px}.ucs{flex-direction:column;gap:10px}.uc{padding:16px 14px}.fi,.fbar select,select.fi,input.fi{font-size:16px;padding:9px 10px;min-height:40px}input[type=month].fi,input[type=date].fi{font-size:14px}.btn{padding:10px 14px;font-size:12px;min-height:40px}.btn[style*="font-size:9px"],.btn[style*="font-size:8px"]{min-height:32px;padding:6px 10px!important}.ph{padding:10px 12px}.pn{overflow-x:auto}.pn table{min-width:560px}.tx-del{padding:8px;font-size:14px;opacity:.6}.ptab{padding:10px 12px;font-size:11px}[style*="grid-template-columns:repeat(5,1fr)"],[style*="grid-template-columns:repeat(4,1fr)"],[style*="grid-template-columns:repeat(6,1fr)"]{grid-template-columns:repeat(2,1fr)!important}[style*="grid-template-columns:repeat(3,1fr)"]{grid-template-columns:repeat(2,1fr)!important}.proj-hd{padding:12px 12px}.toast{left:12px;right:12px;top:auto;bottom:calc(70px + env(safe-area-inset-bottom));text-align:center}}
 #btab{display:none;position:fixed;bottom:0;left:0;right:0;background:#1A2E4A;border-top:1px solid #243D5C;z-index:100;justify-content:space-around;padding:6px 0;overflow-x:auto}
 #btab button{background:none;border:none;color:#8BA4C4;font-size:9px;cursor:pointer;font-family:inherit;padding:4px 8px;display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -672,6 +673,49 @@ var _cloudApplying=false;   // 正在应用远端数据(避免触发回写)
 var _cloudPushT=null;       // 推送防抖计时器
 var CLOUD_CONN=false;       // 连接状态
 var CLOUD_CLIENT_ID=(Math.random().toString(36).slice(2)+Date.now().toString(36)); // 本端唯一标识
+
+// ═══ 台账驱动计划: 从业务台账自动计算回款/付款计划 ═══
+// 付款计划: payDate + paidAmt (应付)
+// 回款计划: dueDate + dueAmt (应回)
+// 自动汇聚到 P[i].pr/pp 月度数组, 联动资金缺口
+function getLedgerPlanItems(pid){
+  var items=[];
+  if(!LEDGER[pid])return items;
+  LEDGER[pid].forEach(function(order){
+    if(!order.payments)return;
+    order.payments.forEach(function(pm){
+      // 付款条目 (OUT): 应付日期 + 应付金额 (优先用payDuDate/payDuAmt)
+      var ppDate=pm.payDuDate||pm.payDate;
+      var ppAmt=pm.payDuAmt||pm.paidAmt||0;
+      if(ppDate){
+        items.push({type:"pp",date:ppDate,amount:ppAmt,actualDate:pm.payDate||"",actualAmt:pm.paidAmt||0,party:order.supplier||"",orderId:order.id,orderContract:order.contract||"",ratio:pm.ratio||"",status:pm.paidAmt>0?"已付":"待付",cur:pm.cur||order.cur||"USD"});
+      }
+      // 回款条目 (IN): 应回日期 + 应回金额 + 实回日期 + 已回金额
+      if(pm.dueDate){
+        var dueAmt=pm.dueAmt||0;var rcvd=pm.receivedAmt||0;
+        var st=rcvd>=dueAmt&&dueAmt>0?"已收":rcvd>0?"部分":"待收";
+        var warn=st!=="已收"&&isWithin10Days(pm.dueDate);
+        items.push({type:"pr",date:pm.dueDate,amount:dueAmt,received:rcvd,party:order.supplier||"",orderId:order.id,orderContract:order.contract||"",ratio:pm.ratio||"",status:st,actualDate:pm.actualDate||"",cur:pm.cur||order.cur||"USD",warn:warn});
+      }
+    });
+  });
+  return items.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+}
+function syncLedgerToPlan(pid){
+  var idx=-1;P.forEach(function(p,i){if(p.id===pid)idx=i;});if(idx<0)return;
+  var items=getLedgerPlanItems(pid);if(!items.length)return;
+  var prM=new Array(12).fill(0),ppM=new Array(12).fill(0);
+  items.forEach(function(it){
+    if(!it.date)return;var mo=parseInt(it.date.substring(5,7))-1;if(mo<0||mo>11)return;
+    if(it.type==="pr")prM[mo]+=it.amount;
+    else ppM[mo]+=it.amount;
+  });
+  // 仅覆盖有台账数据的月份
+  for(var m=0;m<12;m++){if(prM[m]>0)P[idx].pr[m]=prM[m];if(ppM[m]>0)P[idx].pp[m]=ppM[m];}
+}
+function isWithin10Days(dateStr){if(!dateStr)return false;var d=new Date(dateStr),now=new Date();var diff=(d-now)/(86400000);return diff>=0&&diff<=10;}
+function getWeekOfMonth(dateStr){if(!dateStr)return 0;return Math.ceil(parseInt(dateStr.substring(8,10))/7);}
+
 function _collectState(){
   var pd={};P.forEach(function(p,i){pd[i]={pr:p.pr,pp:p.pp};});
   return {
@@ -691,17 +735,20 @@ function _applyState(s){
   try{
     if(Array.isArray(s.tx)){TX=s.tx;TXI=1;TX.forEach(function(t){if(t.id>=TXI)TXI=t.id+1;if(!t.party)t.party="";if(!t.remark)t.remark="";});}
     if(Array.isArray(s.exp)){EXP=s.exp;EXI=1;EXP.forEach(function(x){if(x.id>=EXI)EXI=x.id+1;});}
-    if(Array.isArray(s.rc)){RC=s.rc;RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});if(typeof migrateRC_daG==="function"&&migrateRC_daG())window._rcMigratedInApply=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())window._rcMigratedInApply=true;}
+    if(Array.isArray(s.rc)){RC=s.rc;RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});if(typeof migrateRC_daG==="function"&&migrateRC_daG())window._rcMigratedInApply=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())window._rcMigratedInApply=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())window._rcMigratedInApply=true;}
     if(s.ledger&&typeof s.ledger==="object"){for(var lk in s.ledger)LEDGER[lk]=s.ledger[lk];}
     if(s.plans){Object.keys(s.plans).forEach(function(k){var i=parseInt(k);if(P[i]){if(s.plans[k].pr)P[i].pr=s.plans[k].pr;if(s.plans[k].pp)P[i].pp=s.plans[k].pp;}});}
     if(Array.isArray(s.reimbDaily)){REIMB_DATA=s.reimbDaily;REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});}
     if(Array.isArray(s.reimbTravel)){TRAVEL_DATA=s.reimbTravel;TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});}
     if(Array.isArray(s.datevImported)){DATEV_IMPORTED=s.datevImported;if(typeof rebuildDR==="function")rebuildDR();}
+
     // 同步落地到本地, 保证离线时也有最新副本
     try{savDLocal();if(typeof savReimb==="function")savReimbLocal();if(typeof savDatevLocal==="function")savDatevLocal();}catch(e){}
   }catch(e){console.error("applyState:",e);}
   _cloudApplying=false;
   if(window._rcMigratedInApply){window._rcMigratedInApply=false;try{if(typeof cloudPush==="function")cloudPush();}catch(e){}}
+  // 关键: 云端数据到达后刷新UI, 让用户立即看到其他同事的修改
+  if(typeof render==="function"){try{render();if(typeof bMT==="function")bMT();}catch(e){}}
 }
 function cloudPush(){
   if(!USE_CLOUD||!rtdb||_cloudApplying)return;
@@ -962,7 +1009,7 @@ function hrSub(e){if(!e||e.cat!=="人工成本")return"";var n=e.note||"";if(/�
 // ═══ Operating expense filter ═══
 var OPS_CATS=["办公费","差旅费","仓储/物流","税费/关税","法律/审计","银行手续费","IT/通讯","车辆费用","其他"];
 function isOpsCat(c){return OPS_CATS.indexOf(c)>=0;}
-var BANK_ACCTS={EUR:{iban:'DE95 5141 0700 9700 4712 69',name:'Bank of China EUR',bal:{'2025-12':9600.69,'2026-01':34693.12,'2026-02':432902.27,'2026-03':1964974.01,'2026-04':1562708.57,'2026-05':816310.79,'2026-06':1909195.37}},USD:{iban:'DE42 5141 0700 9700 8599 32',name:'Bank of China USD',bal:{'2025-12':163113.18,'2026-01':180172.29,'2026-02':11093.58,'2026-03':479183.63,'2026-04':266398.73,'2026-05':239559.32,'2026-06':239559.32}},CNY:{iban:'DE68 5141 0700 9700 9565 61',name:'Bank of China CNY',bal:{'2026-03':0,'2026-04':0,'2026-05':0}}};
+var BANK_ACCTS={EUR:{iban:'DE95 5141 0700 9700 4712 69',name:'Bank of China EUR',bal:{'2025-12':9600.69,'2026-01':34693.12,'2026-02':432902.27,'2026-03':1964974.01,'2026-04':1562708.57,'2026-05':816310.79,'2026-06':1909715.27}},USD:{iban:'DE42 5141 0700 9700 8599 32',name:'Bank of China USD',bal:{'2025-12':163113.18,'2026-01':180172.29,'2026-02':11093.58,'2026-03':479183.63,'2026-04':266398.73,'2026-05':239559.32,'2026-06':239559.32}},CNY:{iban:'DE68 5141 0700 9700 9565 61',name:'Bank of China CNY',bal:{'2026-03':0,'2026-04':0,'2026-05':0}}};
 // ═══ Expense Data ═══
 var EX_CATS=["办公费","差旅费","人工成本","仓储/物流","税费/关税","法律/审计","银行手续费","IT/通讯","车辆费用","内部转账","利息","其他"];
 var EXI=500;
@@ -1143,6 +1190,21 @@ function migrateRC_202506(){
     return changed;
   }catch(e){console.error("migrateRC_202506:",e);return false;}
 }
+// ═══ 幂等迁移: 台账旧数据补填应付日期/金额(从实付复制) ═══
+function migrateLedgerPayDu(){
+  var changed=false;
+  for(var pid in LEDGER){
+    if(!LEDGER.hasOwnProperty(pid))continue;
+    LEDGER[pid].forEach(function(order){
+      if(!order.payments)return;
+      order.payments.forEach(function(pm){
+        if(!pm.payDuDate&&pm.payDate){pm.payDuDate=pm.payDate;changed=true;}
+        if((!pm.payDuAmt||pm.payDuAmt===0)&&pm.paidAmt>0){pm.payDuAmt=pm.paidAmt;changed=true;}
+      });
+    });
+  }
+  return changed;
+}
 function getRCbyPid(pid){return RC.filter(function(r){return r.pid===pid;}).sort(function(a,b){return a.inv_date<b.inv_date?-1:a.inv_date>b.inv_date?1:0;});}
 function getRCsum(pid,type){var m=new Array(12).fill(0);RC.forEach(function(r){if(r.pid===pid&&r.type===type){var mo=parseInt((r.inv_date||r.pay_date||"").split("-")[1]||"0",10)-1;if(mo>=0&&mo<12)m[mo]+=r.gross;}});return m;}
 var ROLE="";
@@ -1152,7 +1214,7 @@ function login(n,role){U=n;ROLE=role||"admin";document.getElementById("LS").styl
 bNav();render();bMT();updateCloudBadge();
 if(!window._cloudStarted){window._cloudStarted=true;_cloudInitDone=false;cloudStart();}
 // 迁移延迟到云端首次数据到达后执行(或2秒超时), 避免把本地旧数据推回云端
-function runMigrations(){var _m=false;if(typeof migrateRC_daG==="function"&&migrateRC_daG())_m=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())_m=true;if(_m){savDLocal();cloudPush();render();}}
+function runMigrations(){var _m=false;if(typeof migrateRC_daG==="function"&&migrateRC_daG())_m=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())_m=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())_m=true;if(_m){savDLocal();cloudPush();render();}}
 if(USE_CLOUD){var _mTimer=setTimeout(function(){runMigrations();},2500);var _origInit=_cloudInitDone;var _mCheck=setInterval(function(){if(_cloudInitDone){clearInterval(_mCheck);clearTimeout(_mTimer);setTimeout(runMigrations,200);}},100);setTimeout(function(){clearInterval(_mCheck);},5000);}else{runMigrations();}
 if(typeof loadDD==="function")loadDD();if(typeof scheduleAutoSnapshot==="function")scheduleAutoSnapshot();checkBackupReminder();}
 function doLogout(){if(!confirm("确认登出？"))return;U="";pg="dashboard";try{if(USE_CLOUD&&rtdb){rtdb.ref("lushang/state").off();rtdb.ref(".info/connected").off();}}catch(e){}window._cloudStarted=false;document.getElementById("AS").style.display="none";document.getElementById("LS").style.display="flex";}
@@ -3787,20 +3849,22 @@ h+='<button class="tx-del" onclick="editLedger('+p.id+','+oi+',-1)" title="\u7f1
 h+='<button class="tx-del" onclick="delLedgerOrder('+p.id+','+oi+')" title="\u5220\u9664">\u2715</button>';
 h+='</div></div>';}
 if(o.payments.length){
-h+='<div style="overflow-x:auto"><table style="min-width:920px;margin:0"><thead><tr style="background:rgba(200,150,62,.06)"><th style="width:28px">#</th><th>\u6bd4\u4f8b</th><th>\u5e01\u79cd</th><th>\u4ed8\u6b3e\u65e5\u671f</th><th class="tr">\u5df2\u4ed8\u91c7\u8d2d</th><th>\u5e94\u56de\u65e5</th><th>\u5b9e\u9645\u56de\u65e5</th><th class="tr">\u5e94\u56de\u91d1\u989d</th><th class="tr">\u56de\u6b3e\u91d1\u989d</th><th class="tr">\u672a\u56de\u91d1\u989d</th><th>\u5907\u6ce8</th><th style="width:46px"></th></tr></thead><tbody>';
+h+='<div style="overflow-x:auto"><table style="min-width:1100px;margin:0"><thead><tr style="background:rgba(200,150,62,.06)"><th style="width:24px">#</th><th>\u6bd4\u4f8b</th><th>\u5e01\u79cd</th><th>\u5e94\u4ed8\u65e5\u671f</th><th class="tr">\u5e94\u4ed8\u91d1\u989d</th><th>\u5b9e\u4ed8\u65e5\u671f</th><th class="tr">\u5b9e\u4ed8\u91d1\u989d</th><th>\u5e94\u56de\u65e5\u671f \u26a0</th><th>\u5b9e\u56de\u65e5\u671f</th><th class="tr">\u5e94\u56de\u91d1\u989d</th><th class="tr">\u5df2\u56de\u91d1\u989d</th><th class="tr">\u672a\u56de\u91d1\u989d</th><th>\u5907\u6ce8</th><th style="width:46px"></th></tr></thead><tbody>';
 o.payments.forEach(function(pm,pi){
 var isEP=ledgerEdit&&ledgerEdit.pid===p.id&&ledgerEdit.oi===oi&&ledgerEdit.pi===pi;
 if(isEP){
-h+='<tr style="background:#FFFBF0"><td colspan="10" style="padding:8px">';
-h+='<div style="display:grid;grid-template-columns:60px 50px 85px 85px 85px 85px 80px 80px 70px 1fr;gap:6px;margin-bottom:6px">';
+h+='<tr style="background:#FFFBF0"><td colspan="14" style="padding:8px">';
+h+='<div style="display:grid;grid-template-columns:60px 50px 85px 85px 85px 85px 85px 85px 80px 80px 70px 1fr;gap:6px;margin-bottom:6px">';
 h+='<div><div style="font-size:8px;color:#8B7355">\u6bd4\u4f8b</div><input class="fi" id="lpRatio" value="'+pm.ratio+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5e01\u79cd</div><select class="fi" id="lpCur" style="font-size:10px"><option value="USD"'+((pm.cur||o.cur)==="USD"?" selected":"")+'>$</option><option value="EUR"'+((pm.cur||o.cur)==="EUR"?" selected":"")+'>\u20ac</option><option value="CNY"'+((pm.cur||o.cur)==="CNY"?" selected":"")+'>\u00a5</option></select></div>';
-h+='<div><div style="font-size:8px;color:#8B7355">\u4ed8\u6b3e\u65e5\u671f</div><input class="fi" type="date" id="lpPayDate" value="'+(pm.payDate||"")+'" style="font-size:10px"></div>';
-h+='<div><div style="font-size:8px;color:#8B7355">\u5df2\u4ed8\u91c7\u8d2d</div><input class="fi m" type="number" step="0.01" id="lpPaidAmt" value="'+pm.paidAmt+'" style="font-size:10px"></div>';
-h+='<div><div style="font-size:8px;color:#8B7355">\u5e94\u56de\u65e5</div><input class="fi" type="date" id="lpDueDate" value="'+(pm.dueDate||"")+'" style="font-size:10px"></div>';
-h+='<div><div style="font-size:8px;color:#8B7355">\u5b9e\u9645\u56de\u65e5</div><input class="fi" type="date" id="lpActualDate" value="'+(pm.actualDate||"")+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#C8963E">\u5e94\u4ed8\u65e5\u671f</div><input class="fi" type="date" id="lpPayDuDate" value="'+(pm.payDuDate||pm.payDate||"")+'" style="font-size:10px;border-color:#E8DCC8"></div>';
+h+='<div><div style="font-size:8px;color:#C8963E">\u5e94\u4ed8\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpPayDuAmt" value="'+(pm.payDuAmt||pm.paidAmt||0)+'" style="font-size:10px;border-color:#E8DCC8"></div>';
+h+='<div><div style="font-size:8px;color:#059669">\u5b9e\u4ed8\u65e5\u671f</div><input class="fi" type="date" id="lpPayDate" value="'+(pm.payDate||"")+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#059669">\u5b9e\u4ed8\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpPaidAmt" value="'+pm.paidAmt+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#8B7355">\u5e94\u56de\u65e5\u671f</div><input class="fi" type="date" id="lpDueDate" value="'+(pm.dueDate||"")+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#8B7355">\u5b9e\u56de\u65e5\u671f</div><input class="fi" type="date" id="lpActualDate" value="'+(pm.actualDate||"")+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5e94\u56de\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpDueAmt" value="'+(pm.dueAmt||0)+'" style="font-size:10px"></div>';
-h+='<div><div style="font-size:8px;color:#8B7355">\u56de\u6b3e\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpReceivedAmt" value="'+pm.receivedAmt+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#8B7355">\u5df2\u56de\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpReceivedAmt" value="'+pm.receivedAmt+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u672a\u56de\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpUnpaid" value="'+(pm.unpaid||0)+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5907\u6ce8</div><input class="fi" id="lpNote" value="'+esc(pm.note||"")+'" style="font-size:10px"></div></div>';
 h+='<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn bs" onclick="saveLedgerPay('+p.id+','+oi+','+pi+')" style="font-size:10px;padding:4px 12px">\u4fdd\u5b58</button><button class="btn bg2" onclick="cancelLedgerEdit()" style="font-size:10px;padding:4px 10px">\u53d6\u6d88</button></div></td></tr>';
@@ -3808,9 +3872,12 @@ h+='<div style="display:flex;gap:6px;justify-content:flex-end"><button class="bt
 h+='<tr><td style="text-align:center;color:#8B7355;font-size:9px">'+pm.seq+'</td>';
 h+='<td style="font-size:10px;color:#8B7355;text-align:center">'+pm.ratio+'</td>';
 h+='<td style="font-size:9px;text-align:center"><span class="tag" style="font-size:7px;background:'+(((pm.cur||o.cur)==="EUR")?"rgba(59,130,246,.1);color:#3B82F6":((pm.cur||o.cur)==="CNY")?"rgba(220,38,38,.1);color:#DC2626":"rgba(5,150,105,.1);color:#059669")+'">'+((pm.cur||o.cur)||"USD")+'</span></td>';
-h+='<td class="m" style="font-size:9px;color:#8B7355">'+(pm.payDate||"\u2014")+'</td>';
-h+='<td class="tr m" style="font-size:10px">'+(pm.paidAmt?lCS(pm.cur||o.cur)+F(pm.paidAmt):"\u2014")+'</td>';
-h+='<td class="m" style="font-size:9px;color:#8B7355">'+(pm.dueDate||"\u2014")+'</td>';
+h+='<td class="m" style="font-size:9px;color:#8B7355">'+(pm.payDuDate||pm.payDate||"\u2014")+'</td>';
+h+='<td class="tr m" style="font-size:10px">'+(pm.payDuAmt?lCS(pm.cur||o.cur)+F(pm.payDuAmt):"\u2014")+'</td>';
+h+='<td class="m" style="font-size:9px;color:'+(pm.payDate?"#059669":"#A8998E")+'">'+(pm.payDate||"\u2014")+'</td>';
+h+='<td class="tr m" style="font-size:10px;color:'+(pm.paidAmt?"#059669":"#A8998E")+'">'+(pm.paidAmt?lCS(pm.cur||o.cur)+F(pm.paidAmt):"\u2014")+'</td>';
+var _dueWarn=pm.dueDate&&!(pm.receivedAmt>=pm.dueAmt)&&isWithin10Days(pm.dueDate);
+h+='<td class="m" style="font-size:9px;'+(_dueWarn?'color:#DC2626;font-weight:700;background:#FFF0F0':'color:#8B7355')+'">'+(pm.dueDate||"\u2014")+(_dueWarn?' ⚠':'')+'</td>';
 h+='<td class="m" style="font-size:9px;color:'+(pm.actualDate?"#059669":"#A8998E")+'">'+(pm.actualDate||"\u2014")+'</td>';
 h+='<td class="tr m" style="font-size:10px">'+((pm.dueAmt)?lCS(pm.cur||o.cur)+F(pm.dueAmt):"\u2014")+'</td>';
 h+='<td class="tr m" style="font-size:10px;color:'+(pm.receivedAmt?"#059669":"#A8998E")+'">'+(pm.receivedAmt?lCS(pm.cur||o.cur)+F(pm.receivedAmt):"\u2014")+'</td>';
@@ -3818,10 +3885,12 @@ h+='<td class="tr m" style="font-size:10px;color:'+(pm.unpaid?"#DC2626":"#A8998E
 h+='<td style="font-size:8px;color:#8B7355;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(pm.note||"")+'">'+esc(pm.note||"")+'</td>';
 h+='<td style="white-space:nowrap"><button class="tx-del" onclick="editLedger('+p.id+','+oi+','+pi+')" title="\u7f16\u8f91" style="color:#C8963E;opacity:.6">\u270e</button><button class="tx-del" onclick="delLedgerPay('+p.id+','+oi+','+pi+')" title="\u5220\u9664">\u2715</button></td></tr>';}});
 // Summary row
-var sTotalPaid=0,sTotalDue=0,sTotalRecv=0,sTotalUnpaid=0;
-o.payments.forEach(function(pm){sTotalPaid+=pm.paidAmt;sTotalDue+=(pm.dueAmt||0);sTotalRecv+=pm.receivedAmt;sTotalUnpaid+=(pm.unpaid||0);});
+var sTotalPayDu=0,sTotalPaid=0,sTotalDue=0,sTotalRecv=0,sTotalUnpaid=0;
+o.payments.forEach(function(pm){sTotalPayDu+=(pm.payDuAmt||pm.paidAmt||0);sTotalPaid+=pm.paidAmt;sTotalDue+=(pm.dueAmt||0);sTotalRecv+=pm.receivedAmt;sTotalUnpaid+=(pm.unpaid||0);});
 h+='<tr style="background:#F8F6F2;border-top:2px solid #E8DCC8;font-weight:700"><td colspan="3" style="font-size:10px;color:#2D1F1A">\u5408\u8ba1</td><td></td>';
-h+='<td class="tr m" style="font-size:10px">'+lCS(o.cur)+F(sTotalPaid)+'</td>';
+h+='<td class="tr m" style="font-size:10px">'+lCS(o.cur)+F(sTotalPayDu)+'</td>';
+h+='<td></td>';
+h+='<td class="tr m" style="font-size:10px;color:#059669">'+lCS(o.cur)+F(sTotalPaid)+'</td>';
 h+='<td></td><td></td>';
 h+='<td class="tr m" style="font-size:10px">'+lCS(o.cur)+F(sTotalDue)+'</td>';
 h+='<td class="tr m" style="font-size:10px;color:#059669">'+lCS(o.cur)+F(sTotalRecv)+'</td>';
@@ -3845,10 +3914,60 @@ for(var i=0;i<12;i++){if(r.edit&&editCell&&editCell.idx===pIdx&&editCell.field==
 h+='<td class="tr m" style="font-weight:700;font-size:10px">'+curSym+F(t)+'</td></tr>';});
 h+='<tr class="totr"><td style="font-size:10px;color:#8B2332;font-weight:700">净现金流</td>';var tn2=0;for(var i=0;i<12;i++){var v2=pp.pr[i]-pp.pp[i];tn2+=v2;h+='<td class="tr m" style="font-size:10px;color:'+(v2>=0?"#059669":"#DC2626")+'">'+curSym+F(v2)+'</td>';}h+='<td class="tr m" style="font-weight:700;color:'+(tn2>=0?"#059669":"#DC2626")+'">'+curSym+F(tn2)+'</td></tr>';
 h+='</tbody></table></div></div>';}
+// ═══ 台账驱动计划视图 (只读) ═══
+function renderLedgerPlan(pid,sym,label){
+  syncLedgerToPlan(pid);
+  var items=getLedgerPlanItems(pid);
+  h+='<div class="pn" style="margin-bottom:14px"><div class="ph" style="background:rgba(59,130,246,.04)"><span style="font-weight:700;color:#3B82F6">📅 '+label+'</span><span style="font-size:9px;color:#8B7355;margin-left:8px">数据自动来源于业务台账(只读) ｜ 修改请前往台账</span>';
+  var warn10=items.filter(function(x){return x.type==="pr"&&x.status!=="已收"&&isWithin10Days(x.date);});
+  if(warn10.length)h+='<span style="font-size:9px;color:#fff;background:#DC2626;padding:2px 6px;border-radius:4px;margin-left:8px;animation:pulse 1.5s infinite">⚠ '+warn10.length+'笔应回款10天内到期</span>';
+  h+='</div>';
+  if(!items.length){h+='<div style="padding:20px;text-align:center;color:#A8998E;font-size:10px">台账暂无付款/回款日期数据，请在业务台账中录入</div></div>';return;}
+  // Group by month → week
+  var months={};items.forEach(function(it){var mo=it.date?it.date.substring(0,7):"未知";if(!months[mo])months[mo]=[];months[mo].push(it);});
+  h+='<div style="overflow-x:auto"><table><thead><tr><th style="width:38px">类型</th><th style="width:85px">应付/应回日</th><th style="width:55px">周</th><th style="width:80px">订单号</th><th class="tr" style="width:95px">计划金额</th><th class="tr" style="width:95px">已收/已付</th><th style="width:50px">状态</th><th>供应商/客户</th><th>比例</th></tr></thead><tbody>';
+  Object.keys(months).sort().forEach(function(mo){
+    var moItems=months[mo];
+    var moPR=moItems.filter(function(x){return x.type==="pr";}).reduce(function(s,x){return s+(x.amount||0);},0);
+    var moPP=moItems.filter(function(x){return x.type==="pp";}).reduce(function(s,x){return s+(x.amount||0);},0);
+    h+='<tr style="background:#E8DCC8"><td colspan="4" style="font-weight:700;font-size:11px;color:#2D1F1A">📅 '+mo+'</td>';
+    h+='<td class="tr m" style="font-weight:700;font-size:10px">'+(moPR>0?'<span style="color:#059669">回'+sym+F(moPR)+'</span> ':'')+(moPP>0?'<span style="color:#DC2626">付'+sym+F(moPP)+'</span>':'')+'</td>';
+    h+='<td colspan="4" style="font-size:9px;color:#8B7355">'+moItems.length+'笔</td></tr>';
+    // Group by week within month
+    var weeks={};moItems.forEach(function(it){var wk=getWeekOfMonth(it.date);if(!weeks[wk])weeks[wk]=[];weeks[wk].push(it);});
+    Object.keys(weeks).sort(function(a,b){return a-b;}).forEach(function(wk){
+      var wkItems=weeks[wk];
+      var wkPR=wkItems.filter(function(x){return x.type==="pr";}).reduce(function(s,x){return s+(x.amount||0);},0);
+      var wkPP=wkItems.filter(function(x){return x.type==="pp";}).reduce(function(s,x){return s+(x.amount||0);},0);
+      h+='<tr style="background:#F5F2EE"><td colspan="4" style="font-size:9px;color:#C8963E;font-weight:600;padding-left:20px">第'+wk+'周</td>';
+      h+='<td class="tr m" style="font-size:9px">'+(wkPR>0?'<span style="color:#059669">'+sym+F(wkPR)+'</span> ':'')+(wkPP>0?'<span style="color:#DC2626">'+sym+F(wkPP)+'</span>':'')+'</td>';
+      h+='<td colspan="4" style="font-size:8px;color:#A8998E">'+wkItems.length+'笔</td></tr>';
+      wkItems.forEach(function(it){
+        var isPR=it.type==="pr";var tc=isPR?"#059669":"#DC2626";var tl=isPR?"应回":"应付";
+        var warn=isPR&&it.status!=="已收"&&isWithin10Days(it.date);
+        var rowBg=warn?"#FFF0F0":"#fff";
+        h+='<tr style="background:'+rowBg+'">';
+        h+='<td><span style="font-size:8px;padding:1px 4px;border-radius:3px;color:#fff;background:'+tc+'">'+tl+'</span></td>';
+        h+='<td class="m" style="font-size:10px;'+(warn?'color:#DC2626;font-weight:700':'')+'">'+it.date+(warn?' ⚠':'')+'</td>';
+        h+='<td style="font-size:9px;color:#8B7355">W'+wk+'</td>';
+        h+='<td style="font-size:9px;color:#6B7280">'+esc(it.orderId||"")+'</td>';
+        h+='<td class="tr m" style="font-size:10px;font-weight:600;color:'+tc+'">'+sym+F(it.amount)+'</td>';
+        var rcv=isPR?(it.received||0):(it.amount);
+        h+='<td class="tr m" style="font-size:10px;color:#6B7280">'+sym+F(rcv)+'</td>';
+        var stC=it.status==="已收"||it.status==="已付"?"#059669":it.status==="部分"?"#C8963E":"#8B7355";
+        h+='<td><span style="font-size:8px;padding:1px 4px;border-radius:3px;background:'+stC+'22;color:'+stC+';font-weight:600">'+it.status+'</span></td>';
+        h+='<td style="font-size:9px">'+esc(it.party||"")+'</td>';
+        h+='<td style="font-size:9px;color:#8B7355">'+esc(it.ratio||"")+'</td>';
+        h+='</tr>';
+      });
+    });
+  });
+  h+='</tbody></table></div></div>';
+}
 if(isCup){
-renderPlanTable(idx,"€","📊 EUR 欧元 回款付款计划");
-var idx5=P.indexOf(p5);renderPlanTable(idx5,"$","📊 USD 美元 回款付款计划");
-}else{renderPlanTable(idx,sym,"📊 月度计划与实际对比");}
+renderLedgerPlan(p.id,"€","EUR 回款付款计划");renderPlanTable(idx,"€","📊 EUR 月度汇总");
+var idx5=P.indexOf(p5);renderLedgerPlan(p5.id,"$","USD 回款付款计划");renderPlanTable(idx5,"$","📊 USD 月度汇总");
+}else{renderLedgerPlan(p.id,sym,p.name+" 回款付款计划");renderPlanTable(idx,sym,"📊 月度汇总");}
 }
 el.innerHTML=h;}
 // ═══ Ledger CRUD ═══
@@ -3861,7 +3980,7 @@ LEDGER[pid].push({id:"NEW",contract:"",terms:"FOB",supplier:"",qty:0,cur:"USD",d
 ledgerEdit={pid:pid,oi:LEDGER[pid].length-1,pi:-1};savD();render();}
 function addLedgerPay(pid,oi){
 var o=LEDGER[pid][oi];if(!o)return;
-o.payments.push({seq:o.payments.length+1,ratio:"",cur:o.cur,payDate:"",paidAmt:0,dueDate:"",actualDate:"",dueAmt:0,receivedAmt:0,unpaid:0,note:""});
+o.payments.push({seq:o.payments.length+1,ratio:"",cur:o.cur,payDuDate:"",payDuAmt:0,payDate:"",paidAmt:0,dueDate:"",actualDate:"",dueAmt:0,receivedAmt:0,unpaid:0,note:""});
 ledgerEdit={pid:pid,oi:oi,pi:o.payments.length-1};savD();render();}
 function editLedger(pid,oi,pi){ledgerEdit={pid:pid,oi:oi,pi:pi};render();}
 function cancelLedgerEdit(){ledgerEdit=null;render();}
@@ -3879,8 +3998,9 @@ o.invoiceNo=document.getElementById("leInvNo").value;
 ledgerEdit=null;savD();toast("订单已保存");render();}
 function saveLedgerPay(pid,oi,pi){
 var pm=LEDGER[pid][oi].payments[pi];if(!pm)return;
-pm.ratio=document.getElementById("lpRatio").value;pm.cur=document.getElementById("lpCur").value;pm.payDate=document.getElementById("lpPayDate").value;
-pm.paidAmt=parseFloat(document.getElementById("lpPaidAmt").value)||0;
+pm.ratio=document.getElementById("lpRatio").value;pm.cur=document.getElementById("lpCur").value;
+pm.payDuDate=document.getElementById("lpPayDuDate").value;pm.payDuAmt=parseFloat(document.getElementById("lpPayDuAmt").value)||0;
+pm.payDate=document.getElementById("lpPayDate").value;pm.paidAmt=parseFloat(document.getElementById("lpPaidAmt").value)||0;
 pm.dueDate=document.getElementById("lpDueDate").value;pm.actualDate=document.getElementById("lpActualDate").value;
 pm.dueAmt=parseFloat(document.getElementById("lpDueAmt").value)||0;pm.receivedAmt=parseFloat(document.getElementById("lpReceivedAmt").value)||0;
 var manualUnpaid=document.getElementById("lpUnpaid").value;

@@ -3815,7 +3815,7 @@ h+='<td class="m" style="font-size:9px;color:'+(pm.actualDate?"#059669":"#A8998E
 h+='<td class="tr m" style="font-size:10px">'+((pm.dueAmt)?lCS(pm.cur||o.cur)+F(pm.dueAmt):"\u2014")+'</td>';
 h+='<td class="tr m" style="font-size:10px;color:'+(pm.receivedAmt?"#059669":"#A8998E")+'">'+(pm.receivedAmt?lCS(pm.cur||o.cur)+F(pm.receivedAmt):"\u2014")+'</td>';
 h+='<td class="tr m" style="font-size:10px;color:'+(pm.unpaid?"#DC2626":"#A8998E")+'">'+(pm.unpaid?lCS(pm.cur||o.cur)+F(pm.unpaid):"\u2014")+'</td>';
-h+='<td style="font-size:8px;color:#8B7355;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escesc(pm.note||"")+'">'+esc(pm.note||"")+'</td>';
+h+='<td style="font-size:8px;color:#8B7355;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(pm.note||"")+'">'+esc(pm.note||"")+'</td>';
 h+='<td style="white-space:nowrap"><button class="tx-del" onclick="editLedger('+p.id+','+oi+','+pi+')" title="\u7f16\u8f91" style="color:#C8963E;opacity:.6">\u270e</button><button class="tx-del" onclick="delLedgerPay('+p.id+','+oi+','+pi+')" title="\u5220\u9664">\u2715</button></td></tr>';}});
 // Summary row
 var sTotalPaid=0,sTotalDue=0,sTotalRecv=0,sTotalUnpaid=0;

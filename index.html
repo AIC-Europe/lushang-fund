@@ -6,6 +6,7 @@
 <title>鲁商德国 · 业财一体化平台</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 
 <!-- ═══ Firebase 云端实时同步 SDK ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.js" crossorigin="anonymous"></script>
@@ -699,7 +700,7 @@ function getLedgerPlanItems(pid){
       // 回款条目 (IN): 应回日期 + 应回金额 + 实回日期 + 已回金额
       if(pm.dueDate){
         var dueAmt=pm.dueAmt||0;var rcvd=pm.receivedAmt||0;
-        var st=rcvd>=dueAmt&&dueAmt>0?"已收":rcvd>0?"部分":"待收";
+        var st=isRecvSettled(pm)?"已收":rcvd>0?"部分":"待收";
         var warn=st!=="已收"&&isWithin10Days(pm.dueDate);
         items.push({type:"pr",date:pm.dueDate,amount:dueAmt,received:rcvd,party:order.supplier||"",orderId:order.id,orderContract:order.contract||"",ratio:pm.ratio||"",status:st,actualDate:pm.actualDate||"",cur:pm.cur||order.cur||"USD",warn:warn});
       }
@@ -720,6 +721,8 @@ function syncLedgerToPlan(pid){
   for(var m=0;m<12;m++){if(prM[m]>0)P[idx].pr[m]=prM[m];if(ppM[m]>0)P[idx].pp[m]=ppM[m];}
 }
 function isWithin10Days(dateStr){if(!dateStr)return false;var d=new Date(dateStr),now=new Date();var diff=(d-now)/(86400000);return diff>=0&&diff<=10;}
+// 回款是否已完结: 实回日期已填且有回款(容忍手续费等小额差异) 或 已回金额>=应回金额
+function isRecvSettled(pm){if(!pm)return false;if(pm.actualDate&&(pm.receivedAmt||0)>0)return true;return (pm.dueAmt>0&&(pm.receivedAmt||0)>=pm.dueAmt);}
 function getWeekOfMonth(dateStr){if(!dateStr)return 0;return Math.ceil(parseInt(dateStr.substring(8,10))/7);}
 
 function _collectState(){
@@ -1398,7 +1401,7 @@ h+='<span style="min-width:120px;max-width:180px;color:#2D1F1A;font-weight:500;p
 h+='<span style="flex:1;color:#6B7280;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px" title="'+esc(t.remark||"")+'">'+esc(t.note||"—")+'</span>';
 h+='<span class="m" style="font-weight:600;color:'+(isIn?"#059669":"#DC2626")+';flex-shrink:0">'+(isIn?"+":"-")+sym+F(t.amount)+'</span>';
 h+='</div>';
-if(t.remark){h+='<div style="padding:0 0 4px 90px;font-size:8px;color:#A8998E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+t.remark+'">附言: '+esc(t.remark)+'</div>';}
+if(t.remark){h+='<div style="padding:0 0 4px 90px;font-size:8px;color:#A8998E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(t.remark)+'">附言: '+esc(t.remark)+'</div>';}
 });
 h+='</div>';});}h+='</div>';}el.innerHTML=h;}
 
@@ -3101,8 +3104,8 @@ h+='<div style="display:flex;gap:6px;justify-content:flex-end"><button class="bt
 h+='</td></tr>';
 }else{
 h+='<tr>';
-h+='<td style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+r.party+'">'+r.party+'</td>';
-h+='<td style="font-size:9px;color:#6B7280;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="'+r.contract+'">'+r.contract+'</td>';
+h+='<td style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.party)+'">'+r.party+'</td>';
+h+='<td style="font-size:9px;color:#6B7280;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="'+esc(r.contract)+'">'+r.contract+'</td>';
 h+='<td style="font-size:9px;color:#6B7280">'+r.inv_no+'</td>';
 h+='<td class="m" style="color:#8B7355;font-size:9px">'+r.inv_date+'</td>';
 h+='<td class="tr m" style="font-size:10px">'+sym+F(r.net)+'</td>';
@@ -3143,7 +3146,7 @@ if(rcIn5.length){h+='<div class="pn" style="margin-bottom:14px"><div class="ph" 
 h+='<div style="overflow-x:auto"><table><thead><tr><th>供应商/客户</th><th>合同号</th><th>发票号</th><th>发票日期</th><th class="tr">净额</th><th>税率</th><th class="tr">含税金额</th><th>付款日期</th><th class="tr">付款金额</th><th></th></tr></thead><tbody>';
 rcIn5.forEach(function(r){
 if(editRCId===r.id){h+='<tr style="background:#FFFBF0"><td colspan="10" style="padding:10px"><div style="font-size:10px;color:#C8963E;font-weight:600;margin-bottom:8px">✏️ 编辑</div><div style="display:grid;grid-template-columns:80px 1fr;gap:6px;margin-bottom:6px"><div><div style="font-size:8px;color:#8B7355">类型</div><select class="fi" id="eRCType" style="font-size:10px"><option value="IN"'+(r.type==="IN"?" selected":"")+'>收入</option><option value="OUT"'+(r.type==="OUT"?" selected":"")+'>成本</option></select></div><div><div style="font-size:8px;color:#8B7355">供应商/客户</div><input class="fi" id="eRCParty" value="'+esc(r.party)+'" style="font-size:10px"></div></div><div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:6px;margin-bottom:6px"><div><div style="font-size:8px;color:#8B7355">合同号</div><input class="fi" id="eRCContract" value="'+esc(r.contract)+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">发票号</div><input class="fi" id="eRCInvNo" value="'+esc(r.inv_no)+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">发票日期</div><input class="fi" type="date" id="eRCInvDate" value="'+r.inv_date+'" style="font-size:10px"></div></div><div style="display:grid;grid-template-columns:100px 60px 100px 100px 100px 1fr;gap:6px;margin-bottom:6px"><div><div style="font-size:8px;color:#8B7355">净额</div><input class="fi m" type="number" step="0.01" id="eRCNet" value="'+r.net+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">税率</div><select class="fi" id="eRCTax" style="font-size:10px"><option value="0"'+(r.tax_rate===0?" selected":"")+'>0%</option><option value="7"'+(r.tax_rate===7?" selected":"")+'>7%</option><option value="19"'+(r.tax_rate===19?" selected":"")+'>19%</option></select></div><div><div style="font-size:8px;color:#8B7355">含税金额</div><input class="fi m" type="number" step="0.01" id="eRCGross" value="'+r.gross+'" style="font-size:10px;font-weight:700"></div><div><div style="font-size:8px;color:#8B7355">付款日期</div><input class="fi" type="date" id="eRCPayDate" value="'+(r.pay_date||"")+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">付款金额</div><input class="fi m" type="number" step="0.01" id="eRCPayAmt" value="'+(r.pay_amt||"")+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">备注</div><input class="fi" id="eRCNote" value="'+esc(r.note)+'" style="font-size:10px"></div></div><div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn bs" onclick="saveEditRC('+r.id+')" style="font-size:10px;padding:4px 12px">保存</button><button class="btn bg2" onclick="cancelEditRC()" style="font-size:10px;padding:4px 10px">取消</button></div></td></tr>';}else{
-h+='<tr><td style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+r.party+'">'+r.party+'</td><td style="font-size:9px;color:#6B7280;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="'+r.contract+'">'+r.contract+'</td><td style="font-size:9px;color:#6B7280">'+r.inv_no+'</td><td class="m" style="color:#8B7355;font-size:9px">'+r.inv_date+'</td><td class="tr m" style="font-size:10px">$'+F(r.net)+'</td><td style="font-size:9px;color:#8B7355;text-align:center">'+r.tax_rate+'%</td><td class="tr m" style="font-weight:600;color:#059669;font-size:10px">$'+F(r.gross)+'</td><td class="m" style="color:'+(r.pay_date?"#059669":"#A8998E")+';font-size:9px">'+(r.pay_date||"—")+'</td><td class="tr m" style="font-size:10px;color:'+(r.pay_amt?"#059669":"#A8998E")+'">'+(r.pay_amt?"$"+F(r.pay_amt):"—")+'</td><td style="white-space:nowrap"><button class="tx-del" onclick="startEditRC('+r.id+')" title="编辑" style="color:#C8963E;opacity:.6">✎</button><button class="tx-del" onclick="delRC('+r.id+',5)" title="删除">✕</button></td></tr>';}});
+h+='<tr><td style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.party)+'">'+r.party+'</td><td style="font-size:9px;color:#6B7280;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="'+esc(r.contract)+'">'+r.contract+'</td><td style="font-size:9px;color:#6B7280">'+r.inv_no+'</td><td class="m" style="color:#8B7355;font-size:9px">'+r.inv_date+'</td><td class="tr m" style="font-size:10px">$'+F(r.net)+'</td><td style="font-size:9px;color:#8B7355;text-align:center">'+r.tax_rate+'%</td><td class="tr m" style="font-weight:600;color:#059669;font-size:10px">$'+F(r.gross)+'</td><td class="m" style="color:'+(r.pay_date?"#059669":"#A8998E")+';font-size:9px">'+(r.pay_date||"—")+'</td><td class="tr m" style="font-size:10px;color:'+(r.pay_amt?"#059669":"#A8998E")+'">'+(r.pay_amt?"$"+F(r.pay_amt):"—")+'</td><td style="white-space:nowrap"><button class="tx-del" onclick="startEditRC('+r.id+')" title="编辑" style="color:#C8963E;opacity:.6">✎</button><button class="tx-del" onclick="delRC('+r.id+',5)" title="删除">✕</button></td></tr>';}});
 h+='</tbody></table></div></div>';}
 if(rcOut5.length){h+='<div class="pn" style="margin-bottom:14px"><div class="ph" style="color:#DC2626"><span style="font-weight:700">成本明细 ('+rcOut5.length+'笔)</span><span class="m" style="font-size:11px;margin-left:8px">$'+FK(totOut5)+'</span></div>';
 h+='<div style="overflow-x:auto"><table><thead><tr><th>供应商/客户</th><th>合同号</th><th>发票号</th><th>发票日期</th><th class="tr">净额</th><th>税率</th><th class="tr">含税金额</th><th>付款日期</th><th class="tr">付款金额</th><th></th></tr></thead><tbody>';
@@ -3830,7 +3833,7 @@ var totalProfit=totalSales-totalPurchase,totalPctStr=totalSales>0?((totalProfit/
 var kpis=[{l:"\u603b\u91c7\u8d2d\u989d",v:lCS(ld[0]?ld[0].cur:"USD")+FK(totalPurchase),c:"#DC2626"},{l:"\u603b\u9500\u552e\u989d",v:lCS(ld[0]?ld[0].cur:"USD")+FK(totalSales),c:"#059669"},{l:"\u6bdb\u5229\u6da6 ("+totalPctStr+")",v:lCS(ld[0]?ld[0].cur:"USD")+(totalProfit>=0?"+":"")+FK(totalProfit),c:totalProfit>=0?"#059669":"#DC2626"},{l:"\u5df2\u6536\u56de\u6b3e",v:lCS(ld[0]?ld[0].cur:"USD")+FK(totalReceived),c:"#3B82F6"},{l:"\u5f85\u56de\u6b3e",v:lCS(ld[0]?ld[0].cur:"USD")+FK(totalUnpaid),c:"#8B2332"}];
 kpis.forEach(function(k){
 h+='<div style="text-align:center"><div style="font-size:8px;color:#8B7355">'+k.l+'</div><div class="m" style="font-size:14px;font-weight:700;color:'+k.c+'">'+k.v+'</div></div>';});h+='</div>';
-h+='<div style="padding:8px 16px;border-bottom:1px solid #F0ECE6;display:flex;justify-content:flex-end"><button class="btn bg2" onclick="exportBizLedger('+p.id+')" style="font-size:9px;padding:4px 12px">📥 导出Excel</button></div>';
+h+='<div style="padding:8px 16px;border-bottom:1px solid #F0ECE6;display:flex;justify-content:flex-end"><button class="btn bg2" onclick="exportBizLedger('+p.id+')" style="font-size:9px;padding:4px 12px" title="\u5bfc\u51fa\u672c\u677f\u5757\u5168\u90e8\u8ba2\u5355\u53ca\u4ed8\u6b3e\u56de\u6b3e\u660e\u7ec6(xlsx)">\ud83d\udce5 \u5bfc\u51fa\u5168\u90e8\u8ba2\u5355Excel</button></div>';
 ld.forEach(function(o,oi){
 var isEO=ledgerEdit&&ledgerEdit.pid===p.id&&ledgerEdit.oi===oi&&ledgerEdit.pi===-1;
 var bg=oi%2===0?"#FFF":"#FAFAF8";
@@ -3838,10 +3841,10 @@ h+='<div style="border-top:2px solid #E8DCC8;background:'+bg+'">';
 if(isEO){
 h+='<div style="padding:10px 16px;background:#FFFBF0"><div style="font-size:10px;color:#C8963E;font-weight:600;margin-bottom:8px">\u270f\ufe0f \u7f16\u8f91\u8ba2\u5355</div>';
 h+='<div style="display:grid;grid-template-columns:70px 120px 60px 1fr 50px 60px 50px;gap:6px;margin-bottom:6px">';
-h+='<div><div style="font-size:8px;color:#8B7355">\u8ba2\u5355\u53f7</div><input class="fi" id="leId" value="'+o.id+'" style="font-size:10px"></div>';
-h+='<div><div style="font-size:8px;color:#8B7355">\u5408\u540c\u53f7</div><input class="fi" id="leContract" value="'+o.contract+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#8B7355">\u8ba2\u5355\u53f7</div><input class="fi" id="leId" value="'+esc(o.id)+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#8B7355">\u5408\u540c\u53f7</div><input class="fi" id="leContract" value="'+esc(o.contract)+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u672f\u8bed</div><select class="fi" id="leTerms" style="font-size:10px"><option value="FOB"'+(o.terms==="FOB"?" selected":"")+'>FOB</option><option value="CIF"'+(o.terms==="CIF"?" selected":"")+'>CIF</option></select></div>';
-h+='<div><div style="font-size:8px;color:#8B7355">\u4f9b\u5e94\u5546</div><input class="fi" id="leSupplier" value="'+o.supplier+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#8B7355">\u4f9b\u5e94\u5546</div><input class="fi" id="leSupplier" value="'+esc(o.supplier)+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u67dc\u6570</div><input class="fi" type="number" id="leQty" value="'+o.qty+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5e01\u79cd</div><select class="fi" id="leCur" style="font-size:10px"><option value="USD"'+(o.cur==="USD"?" selected":"")+'>USD $</option><option value="EUR"'+(o.cur==="EUR"?" selected":"")+'>EUR €</option><option value="CNY"'+(o.cur==="CNY"?" selected":"")+'>CNY ¥</option></select></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u8d26\u671f</div><input class="fi" type="number" id="leDays" value="'+o.days+'" style="font-size:10px"></div></div>';
@@ -3850,14 +3853,14 @@ h+='<div><div style="font-size:8px;color:#8B7355">\u91c7\u8d2d\u91d1\u989d</div>
 h+='<div><div style="font-size:8px;color:#8B7355">\u9500\u552e\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="leSales" value="'+o.salesAmt+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u4fdd\u8bc1\u91d1</div><input class="fi m" type="number" step="0.01" id="leDeposit" value="'+o.deposit+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u4fdd\u8bc1\u91d1\u65e5\u671f</div><input class="fi" type="date" id="leDepositDate" value="'+o.depositDate+'" style="font-size:10px"></div>';
-h+='<div style="grid-column:span 2"><div style="font-size:8px;color:#8B7355">\u9500\u552e\u53d1\u7968\u53f7 <span style="color:#A8998E;font-weight:400">(\u591a\u5f20\u7528\u9017\u53f7\u5206\u9694)</span></div><input class="fi" id="leInvNo" value="'+(o.invoiceNo||"")+'" style="font-size:10px" placeholder="\u5982: INV-001, INV-002"></div></div>';
+h+='<div style="grid-column:span 2"><div style="font-size:8px;color:#8B7355">\u9500\u552e\u53d1\u7968\u53f7 <span style="color:#A8998E;font-weight:400">(\u591a\u5f20\u7528\u9017\u53f7\u5206\u9694)</span></div><input class="fi" id="leInvNo" value="'+esc(o.invoiceNo||"")+'" style="font-size:10px" placeholder="\u5982: INV-001, INV-002"></div></div>';
 h+='<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn bs" onclick="saveLedgerOrder('+p.id+','+oi+')" style="font-size:10px;padding:4px 12px">\u4fdd\u5b58</button><button class="btn bg2" onclick="cancelLedgerEdit()" style="font-size:10px;padding:4px 10px">\u53d6\u6d88</button></div></div>';
 }else{
 h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-bottom:1px solid #F0ECE6">';
 h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
-h+='<span style="font-weight:700;color:#2D1F1A;font-size:13px">'+o.id+'</span>';
-h+='<span style="font-size:9px;color:#6B7280">'+o.contract+'</span>';
-h+='<span style="font-size:10px;font-weight:500">'+o.supplier+'</span>';
+h+='<span style="font-weight:700;color:#2D1F1A;font-size:13px">'+esc(o.id)+'</span>';
+h+='<span style="font-size:9px;color:#6B7280">'+esc(o.contract)+'</span>';
+h+='<span style="font-size:10px;font-weight:500">'+esc(o.supplier)+'</span>';
 h+='<span class="tag" style="font-size:7px;background:'+(o.cur==="EUR"?"rgba(59,130,246,.1);color:#3B82F6":o.cur==="CNY"?"rgba(220,38,38,.1);color:#DC2626":"rgba(5,150,105,.1);color:#059669")+'">'+o.cur+'</span>';
 h+='<span style="font-size:10px;color:#8B7355">'+o.qty+'\u67dc</span>';
 h+='<span class="m" style="font-size:10px;color:#DC2626;font-weight:600">\u91c7\u8d2d '+lCS(o.cur)+(o.purchaseAmt?F(o.purchaseAmt):"\u2014")+'</span>';
@@ -3867,44 +3870,59 @@ if(o.purchaseAmt&&o.salesAmt)h+='<span class="m" style="font-size:10px;font-weig
 var oTotalRcv=0,oTotalPaid=0;o.payments.forEach(function(pm){oTotalPaid+=pm.paidAmt;oTotalRcv+=pm.receivedAmt;});
 var oCashFlow=oTotalRcv-oTotalPaid;
 if(oTotalPaid||oTotalRcv)h+='<span class="m" style="font-size:9px;padding:1px 6px;border-radius:3px;background:'+(oCashFlow>=0?"rgba(5,150,105,.08)":"rgba(220,38,38,.08)")+';color:'+(oCashFlow>=0?"#059669":"#DC2626")+'">\u73b0\u91d1\u6d41 '+lCS(o.cur)+(oCashFlow>=0?"+":"")+FK(oCashFlow)+'</span>';
-if(o.invoiceNo){var invs=o.invoiceNo.split(",");invs.forEach(function(inv){inv=inv.trim();if(inv)h+='<span style="font-size:8px;color:#3B82F6;background:rgba(59,130,246,.08);padding:1px 6px;border-radius:3px;margin-right:3px">\ud83d\udcc4'+inv+'</span>';});}
-h+='</div><div style="display:flex;gap:4px;flex-shrink:0">';
-h+='<button class="btn bp" onclick="addLedgerPay('+p.id+','+oi+')" style="font-size:9px;padding:3px 8px">+ \u4ed8\u6b3e</button>';
+if(o.invoiceNo){var invs=o.invoiceNo.split(",");invs.forEach(function(inv){inv=inv.trim();if(inv)h+='<span style="font-size:8px;color:#3B82F6;background:rgba(59,130,246,.08);padding:1px 6px;border-radius:3px;margin-right:3px">\ud83d\udcc4'+esc(inv)+'</span>';});}
+h+='</div><div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">';
+h+='<button class="btn bg2" onclick="importOrderXlsx('+p.id+','+oi+')" style="font-size:9px;padding:3px 8px" title="\u4ece Excel(xlsx) \u5bfc\u5165\u4ed8\u6b3e\u8bb0\u5f55">\ud83d\udce4 \u5bfc\u5165Excel</button>';
+h+='<button class="btn bg2" onclick="exportOrderTpl('+p.id+','+oi+')" style="font-size:9px;padding:3px 8px" title="\u5bfc\u51fa\u7a7a\u767d\u5bfc\u5165\u6a21\u677f(xlsx)">\ud83d\udccb \u6a21\u677f\u5bfc\u51fa</button>';
+h+='<button class="btn bg2" onclick="exportOrderXlsx('+p.id+','+oi+')" style="font-size:9px;padding:3px 8px" title="\u5bfc\u51fa\u672c\u8ba2\u5355\u53f0\u8d26(xlsx)">\ud83d\udce5 \u5bfc\u51faExcel</button>';
+h+='<button class="btn bp" onclick="addLedgerPay('+p.id+','+oi+')" style="font-size:9px;padding:3px 8px">+ \u65b0\u589e</button>';
 h+='<button class="tx-del" onclick="editLedger('+p.id+','+oi+',-1)" title="\u7f16\u8f91" style="color:#C8963E;opacity:.6">\u270e</button>';
 h+='<button class="tx-del" onclick="delLedgerOrder('+p.id+','+oi+')" title="\u5220\u9664">\u2715</button>';
 h+='</div></div>';}
 if(o.payments.length){
-h+='<div style="overflow-x:auto"><table style="min-width:1100px;margin:0"><thead><tr style="background:rgba(200,150,62,.06)"><th style="width:24px">#</th><th>\u6bd4\u4f8b</th><th>\u5e01\u79cd</th><th>\u5e94\u4ed8\u65e5\u671f</th><th class="tr">\u5e94\u4ed8\u91d1\u989d</th><th>\u5b9e\u4ed8\u65e5\u671f</th><th class="tr">\u5b9e\u4ed8\u91d1\u989d</th><th>\u5e94\u56de\u65e5\u671f \u26a0</th><th>\u5b9e\u56de\u65e5\u671f</th><th class="tr">\u5e94\u56de\u91d1\u989d</th><th class="tr">\u5df2\u56de\u91d1\u989d</th><th class="tr">\u672a\u56de\u91d1\u989d</th><th>\u5907\u6ce8</th><th style="width:46px"></th></tr></thead><tbody>';
+h+='<div style="overflow-x:auto"><table style="min-width:1180px;margin:0"><thead><tr style="background:rgba(200,150,62,.06)"><th style="width:24px">#</th><th>\u6bd4\u4f8b</th><th>\u5e01\u79cd</th><th>\u5e94\u4ed8\u65e5\u671f</th><th class="tr">\u5e94\u4ed8\u91d1\u989d</th><th>\u5b9e\u4ed8\u65e5\u671f</th><th class="tr">\u5b9e\u4ed8\u91d1\u989d</th><th>\u5e94\u56de\u65e5\u671f \u26a0</th><th>\u5269\u4f59\u5929\u6570</th><th class="tr">\u5e94\u56de\u91d1\u989d</th><th>\u5b9e\u56de\u65e5\u671f</th><th class="tr">\u5df2\u56de\u91d1\u989d</th><th class="tr">\u672a\u56de\u91d1\u989d</th><th>\u5907\u6ce8</th><th style="width:46px"></th></tr></thead><tbody>';
 o.payments.forEach(function(pm,pi){
 var isEP=ledgerEdit&&ledgerEdit.pid===p.id&&ledgerEdit.oi===oi&&ledgerEdit.pi===pi;
 if(isEP){
-h+='<tr style="background:#FFFBF0"><td colspan="14" style="padding:8px">';
+h+='<tr style="background:#FFFBF0"><td colspan="15" style="padding:8px">';
 h+='<div style="display:grid;grid-template-columns:60px 50px 85px 85px 85px 85px 85px 85px 80px 80px 70px 1fr;gap:6px;margin-bottom:6px">';
-h+='<div><div style="font-size:8px;color:#8B7355">\u6bd4\u4f8b</div><input class="fi" id="lpRatio" value="'+pm.ratio+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#8B7355">\u6bd4\u4f8b</div><input class="fi" id="lpRatio" value="'+esc(pm.ratio)+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5e01\u79cd</div><select class="fi" id="lpCur" style="font-size:10px"><option value="USD"'+((pm.cur||o.cur)==="USD"?" selected":"")+'>$</option><option value="EUR"'+((pm.cur||o.cur)==="EUR"?" selected":"")+'>\u20ac</option><option value="CNY"'+((pm.cur||o.cur)==="CNY"?" selected":"")+'>\u00a5</option></select></div>';
 h+='<div><div style="font-size:8px;color:#C8963E">\u5e94\u4ed8\u65e5\u671f</div><input class="fi" type="date" id="lpPayDuDate" value="'+(pm.payDuDate||pm.payDate||"")+'" style="font-size:10px;border-color:#E8DCC8"></div>';
 h+='<div><div style="font-size:8px;color:#C8963E">\u5e94\u4ed8\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpPayDuAmt" value="'+(pm.payDuAmt||pm.paidAmt||0)+'" style="font-size:10px;border-color:#E8DCC8"></div>';
 h+='<div><div style="font-size:8px;color:#059669">\u5b9e\u4ed8\u65e5\u671f</div><input class="fi" type="date" id="lpPayDate" value="'+(pm.payDate||"")+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#059669">\u5b9e\u4ed8\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpPaidAmt" value="'+pm.paidAmt+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5e94\u56de\u65e5\u671f</div><input class="fi" type="date" id="lpDueDate" value="'+(pm.dueDate||"")+'" style="font-size:10px"></div>';
-h+='<div><div style="font-size:8px;color:#8B7355">\u5b9e\u56de\u65e5\u671f</div><input class="fi" type="date" id="lpActualDate" value="'+(pm.actualDate||"")+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5e94\u56de\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpDueAmt" value="'+(pm.dueAmt||0)+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#8B7355">\u5b9e\u56de\u65e5\u671f</div><input class="fi" type="date" id="lpActualDate" value="'+(pm.actualDate||"")+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5df2\u56de\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpReceivedAmt" value="'+pm.receivedAmt+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u672a\u56de\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lpUnpaid" value="'+(pm.unpaid||0)+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5907\u6ce8</div><input class="fi" id="lpNote" value="'+esc(pm.note||"")+'" style="font-size:10px"></div></div>';
 h+='<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn bs" onclick="saveLedgerPay('+p.id+','+oi+','+pi+')" style="font-size:10px;padding:4px 12px">\u4fdd\u5b58</button><button class="btn bg2" onclick="cancelLedgerEdit()" style="font-size:10px;padding:4px 10px">\u53d6\u6d88</button></div></td></tr>';
 }else{
-h+='<tr><td style="text-align:center;color:#8B7355;font-size:9px">'+pm.seq+'</td>';
-h+='<td style="font-size:10px;color:#8B7355;text-align:center">'+pm.ratio+'</td>';
+h+='<tr><td style="text-align:center;color:#8B7355;font-size:9px">'+esc(pm.seq)+'</td>';
+h+='<td style="font-size:10px;color:#8B7355;text-align:center">'+esc(pm.ratio)+'</td>';
 h+='<td style="font-size:9px;text-align:center"><span class="tag" style="font-size:7px;background:'+(((pm.cur||o.cur)==="EUR")?"rgba(59,130,246,.1);color:#3B82F6":((pm.cur||o.cur)==="CNY")?"rgba(220,38,38,.1);color:#DC2626":"rgba(5,150,105,.1);color:#059669")+'">'+((pm.cur||o.cur)||"USD")+'</span></td>';
 h+='<td class="m" style="font-size:9px;color:#8B7355">'+(pm.payDuDate||pm.payDate||"\u2014")+'</td>';
 h+='<td class="tr m" style="font-size:10px">'+(pm.payDuAmt?lCS(pm.cur||o.cur)+F(pm.payDuAmt):"\u2014")+'</td>';
 h+='<td class="m" style="font-size:9px;color:'+(pm.payDate?"#059669":"#A8998E")+'">'+(pm.payDate||"\u2014")+'</td>';
 h+='<td class="tr m" style="font-size:10px;color:'+(pm.paidAmt?"#059669":"#A8998E")+'">'+(pm.paidAmt?lCS(pm.cur||o.cur)+F(pm.paidAmt):"\u2014")+'</td>';
-var _dueWarn=pm.dueDate&&!(pm.receivedAmt>=pm.dueAmt)&&isWithin10Days(pm.dueDate);
+var _dueWarn=pm.dueDate&&!isRecvSettled(pm)&&isWithin10Days(pm.dueDate);
 h+='<td class="m" style="font-size:9px;'+(_dueWarn?'color:#DC2626;font-weight:700;background:#FFF0F0':'color:#8B7355')+'">'+(pm.dueDate||"\u2014")+(_dueWarn?' ⚠':'')+'</td>';
-h+='<td class="m" style="font-size:9px;color:'+(pm.actualDate?"#059669":"#A8998E")+'">'+(pm.actualDate||"\u2014")+'</td>';
+// ═══ 剩余回款倒计时 ═══
+var _cd='\u2014';
+if(pm.dueDate){
+var _paidUp=isRecvSettled(pm);
+if(_paidUp){_cd='<span style="font-size:8px;color:#059669;font-weight:600">\u2713 \u5df2\u56de\u6b3e</span>';}
+else{
+var _days=Math.ceil((new Date(pm.dueDate)-new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()))/86400000);
+if(isNaN(_days))_cd='\u2014';
+else if(_days<0)_cd='<span class="m" style="font-size:9px;font-weight:700;color:#fff;background:#DC2626;padding:1px 6px;border-radius:3px">\u903e\u671f'+(-_days)+'\u5929</span>';
+else if(_days<=10)_cd='<span class="m" style="font-size:9px;font-weight:700;color:#DC2626;background:#FFF0F0;border:1px solid #DC2626;padding:1px 6px;border-radius:3px;animation:pulse 1.5s infinite">\u5269'+_days+'\u5929</span>';
+else _cd='<span class="m" style="font-size:9px;color:#8B7355">\u5269'+_days+'\u5929</span>';}}
+h+='<td style="text-align:center;white-space:nowrap">'+_cd+'</td>';
 h+='<td class="tr m" style="font-size:10px">'+((pm.dueAmt)?lCS(pm.cur||o.cur)+F(pm.dueAmt):"\u2014")+'</td>';
+h+='<td class="m" style="font-size:9px;color:'+(pm.actualDate?"#059669":"#A8998E")+'">'+(pm.actualDate||"\u2014")+'</td>';
 h+='<td class="tr m" style="font-size:10px;color:'+(pm.receivedAmt?"#059669":"#A8998E")+'">'+(pm.receivedAmt?lCS(pm.cur||o.cur)+F(pm.receivedAmt):"\u2014")+'</td>';
 h+='<td class="tr m" style="font-size:10px;color:'+(pm.unpaid?"#DC2626":"#A8998E")+'">'+(pm.unpaid?lCS(pm.cur||o.cur)+F(pm.unpaid):"\u2014")+'</td>';
 h+='<td style="font-size:8px;color:#8B7355;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(pm.note||"")+'">'+esc(pm.note||"")+'</td>';
@@ -3918,6 +3936,7 @@ h+='<td></td>';
 h+='<td class="tr m" style="font-size:10px;color:#059669">'+lCS(o.cur)+F(sTotalPaid)+'</td>';
 h+='<td></td><td></td>';
 h+='<td class="tr m" style="font-size:10px">'+lCS(o.cur)+F(sTotalDue)+'</td>';
+h+='<td></td>';
 h+='<td class="tr m" style="font-size:10px;color:#059669">'+lCS(o.cur)+F(sTotalRecv)+'</td>';
 h+='<td class="tr m" style="font-size:10px;color:'+(sTotalUnpaid>0?"#DC2626":"#059669")+'">'+lCS(o.cur)+F(sTotalUnpaid)+'</td>';
 h+='<td></td><td></td></tr>';
@@ -4035,21 +4054,171 @@ ledgerEdit=null;savD();toast("付款记录已保存");render();}
 function delLedgerOrder(pid,oi){if(!confirm("第1步确认：删除订单 "+LEDGER[pid][oi].id+" 及所有付款记录？"))return;if(!confirm("第2步确认：删除后不可恢复，是否继续？"))return;LEDGER[pid].splice(oi,1);savD();toast("订单已删除");render();}
 function delLedgerPay(pid,oi,pi){if(!confirm("第1步确认：删除此笔付款记录？"))return;if(!confirm("第2步确认：删除后不可恢复，是否继续？"))return;LEDGER[pid][oi].payments.splice(pi,1);savD();toast("付款记录已删除");render();}
 
-function exportBizLedger(pid){
-var ld=LEDGER[pid];if(!ld||!ld.length){toast("无数据可导出");return;}
-var pn="";P.forEach(function(p){if(p.id===pid)pn=p.name;});
-var rows=[["订单号","采购合同号","贸易术语","上游供应商","柜数","币种","账期(天)","采购合同金额","销售合同金额","保证金","保证金到账日","销售发票号","付款序号","付款比例","币种","付款日期","已付采购金额","应回款日期","实际回款日期","应回款金额","回款金额","未回金额","备注"]];
-ld.forEach(function(o){
-if(!o.payments.length){rows.push([o.id,o.contract,o.terms,o.supplier,o.qty,o.cur,o.days,o.purchaseAmt,o.salesAmt,o.deposit,o.depositDate,o.invoiceNo,"","","","","","","","",""]);}
-o.payments.forEach(function(pm,pi){
-var r=pi===0?[o.id,o.contract,o.terms,o.supplier,o.qty,o.cur,o.days,o.purchaseAmt,o.salesAmt,o.deposit,o.depositDate,o.invoiceNo]:["","","","","","","","","","","",""];
-r.push(pm.seq,pm.ratio,pm.cur||o.cur,pm.payDate,pm.paidAmt,pm.dueDate,pm.actualDate,pm.dueAmt||0,pm.receivedAmt,pm.unpaid||0,pm.note||"");
-rows.push(r);});});
+// ═══ 单笔订单 Excel(xlsx) 导入/模板/导出 ═══
+function safeFn(s){return String(s||"").replace(/[\\\/:*?"<>|]/g,"_");}
+var ORDER_XLSX_HEADERS=["\u4ed8\u6b3e\u5e8f\u53f7","\u4ed8\u6b3e\u6bd4\u4f8b","\u5e01\u79cd","\u5e94\u4ed8\u65e5\u671f","\u5e94\u4ed8\u91d1\u989d","\u5b9e\u4ed8\u65e5\u671f","\u5b9e\u4ed8\u91d1\u989d","\u5e94\u56de\u65e5\u671f","\u5e94\u56de\u91d1\u989d","\u5b9e\u56de\u65e5\u671f","\u5df2\u56de\u91d1\u989d","\u672a\u56de\u91d1\u989d","\u5907\u6ce8"];
+function xlsDate(v){
+if(v==null||v==="")return"";
+if(v&&typeof v.getTime==="function"&&typeof v.getTimezoneOffset==="function"){if(isNaN(v.getTime()))return"";var t=new Date(v.getTime()-v.getTimezoneOffset()*60000);return t.toISOString().slice(0,10);}
+if(typeof v==="number"&&v>20000&&v<80000){var d=new Date(Math.round((v-25569)*86400*1000));return d.toISOString().slice(0,10);}
+var s=String(v).trim();
+var m=s.match(/^(\d{4})[\/\-\.\u5e74](\d{1,2})[\/\-\.\u6708](\d{1,2})/);
+if(m)return m[1]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[3]).slice(-2);
+m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+if(m)return m[3]+"-"+("0"+m[1]).slice(-2)+"-"+("0"+m[2]).slice(-2);
+var d2=new Date(s);
+if(!isNaN(d2.getTime())&&/\d{4}/.test(s)){var t2=new Date(d2.getTime()-d2.getTimezoneOffset()*60000);return t2.toISOString().slice(0,10);}
+return "";}
+function exportOrderTpl(pid,oi){
+if(typeof XLSX==="undefined"){toast("XLSX\u672a\u52a0\u8f7d");return;}
+var o=LEDGER[pid][oi];if(!o)return;
+var rows=[ORDER_XLSX_HEADERS.slice(),
+[1,"50%",o.cur||"USD","2026-01-15",10000,"2026-01-15",10000,"2026-05-15",9500,"","0","0","\u793a\u4f8b\u884c\uff0c\u5bfc\u5165\u524d\u8bf7\u66ff\u6362\u4e3a\u5b9e\u9645\u6570\u636e"]];
 var ws=XLSX.utils.aoa_to_sheet(rows);
-ws["!cols"]=[{wch:8},{wch:20},{wch:5},{wch:25},{wch:5},{wch:5},{wch:6},{wch:14},{wch:14},{wch:12},{wch:12},{wch:18},{wch:5},{wch:6},{wch:5},{wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:12},{wch:12},{wch:15}];
-var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,pn||"台账");
-XLSX.writeFile(wb,(pn||"业务台账")+"_"+new Date().toISOString().slice(0,10)+".xlsx");
-toast("已导出Excel");}
+ws["!cols"]=[{wch:8},{wch:8},{wch:6},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12},{wch:24}];
+var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"\u5bfc\u5165\u6a21\u677f");
+XLSX.writeFile(wb,safeFn(o.id||"\u8ba2\u5355")+"_\u5bfc\u5165\u6a21\u677f.xlsx");toast("\u6a21\u677f\u5df2\u5bfc\u51fa");}
+// ═══ 分区式样式化台账导出 (与界面同构: 订单横幅 + 明细 + 小计) ═══
+var _XB={top:{style:"thin",color:{rgb:"D8CDBB"}},bottom:{style:"thin",color:{rgb:"D8CDBB"}},left:{style:"thin",color:{rgb:"D8CDBB"}},right:{style:"thin",color:{rgb:"D8CDBB"}}};
+var _XS={
+title:{font:{bold:true,sz:16,color:{rgb:"2D1F1A"}}},
+subtitle:{font:{sz:10,color:{rgb:"8B7355"}}},
+kpihead:{font:{bold:true,sz:9,color:{rgb:"8B7355"}},fill:{fgColor:{rgb:"F5F0E8"}},alignment:{horizontal:"center"},border:_XB},
+kpival:{font:{bold:true,sz:12,color:{rgb:"2D1F1A"}},alignment:{horizontal:"center"},border:_XB},
+ohead:{font:{bold:true,sz:11,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"1E2D4D"}},alignment:{vertical:"center"}},
+phead:{font:{bold:true,sz:9,color:{rgb:"6B5D52"}},fill:{fgColor:{rgb:"F0E9DC"}},alignment:{horizontal:"center"},border:_XB},
+pay:{font:{sz:10},border:_XB},
+pay_settled:{font:{sz:10,color:{rgb:"059669"}},border:_XB},
+pay_warn:{font:{sz:10,bold:true,color:{rgb:"C2410C"}},fill:{fgColor:{rgb:"FFF4EC"}},border:_XB},
+pay_over:{font:{sz:10,bold:true,color:{rgb:"DC2626"}},fill:{fgColor:{rgb:"FFF0F0"}},border:_XB},
+sub:{font:{bold:true,sz:10,color:{rgb:"2D1F1A"}},fill:{fgColor:{rgb:"F8F6F2"}},border:_XB},
+total:{font:{bold:true,sz:11,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"8B2332"}},border:_XB}
+};
+function _xm(v){return{v:Math.round((v||0)*100)/100,t:"n",z:"#,##0.00"};}
+function _xcd(pm,today){
+if(!pm.dueDate)return"";
+if(isRecvSettled(pm))return"\u2713 \u5df2\u56de\u6b3e";
+var d=Math.ceil((new Date(pm.dueDate)-today)/86400000);
+if(isNaN(d))return"";
+return d<0?("\u903e\u671f"+(-d)+"\u5929"):("\u5269"+d+"\u5929");}
+function buildLedgerSheet(orders,titleText,withKpi){
+var COLS=14,rows=[],meta=[],merges=[];
+var today=new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+function push(r,m){rows.push(r);meta.push(m);}
+// 标题
+push([titleText],"title");merges.push({s:{r:0,c:0},e:{r:0,c:COLS-1}});
+push(["\u5bfc\u51fa\u65e5\u671f "+new Date().toISOString().slice(0,10)+"   \u5171 "+orders.length+" \u4e2a\u8ba2\u5355   \u72b6\u6001\u57fa\u4e8e\u5bfc\u51fa\u5f53\u65e5\u8ba1\u7b97"],"subtitle");merges.push({s:{r:1,c:0},e:{r:1,c:COLS-1}});
+push([],"blank");
+// KPI
+if(withKpi){
+var tP=0,tS=0,tR=0,tU=0;
+orders.forEach(function(o){tP+=o.purchaseAmt||0;tS+=o.salesAmt||0;o.payments.forEach(function(pm){tR+=pm.receivedAmt||0;tU+=pm.unpaid||0;});});
+var kr=rows.length;
+push(["\u603b\u91c7\u8d2d\u989d","","\u603b\u9500\u552e\u989d","","\u6bdb\u5229\u6da6","","\u5df2\u6536\u56de\u6b3e","","\u5f85\u56de\u6b3e","","","","",""],"kpihead");
+push([_xm(tP),"",_xm(tS),"",_xm(tS-tP),"",_xm(tR),"",_xm(tU),"","","","",""],"kpival");
+for(var kc=0;kc<10;kc+=2){merges.push({s:{r:kr,c:kc},e:{r:kr,c:kc+1}});merges.push({s:{r:kr+1,c:kc},e:{r:kr+1,c:kc+1}});}
+push([],"blank");}
+var PH=["#","\u6bd4\u4f8b","\u5e01\u79cd","\u5e94\u4ed8\u65e5\u671f","\u5e94\u4ed8\u91d1\u989d","\u5b9e\u4ed8\u65e5\u671f","\u5b9e\u4ed8\u91d1\u989d","\u5e94\u56de\u65e5\u671f","\u5269\u4f59\u5929\u6570/\u72b6\u6001","\u5e94\u56de\u91d1\u989d","\u5b9e\u56de\u65e5\u671f","\u5df2\u56de\u91d1\u989d","\u672a\u56de\u91d1\u989d","\u5907\u6ce8"];
+var gPD=0,gPA=0,gDA=0,gRA=0,gUP=0;
+orders.forEach(function(o){
+var cs=o.cur==="EUR"?"\u20ac":o.cur==="CNY"?"\u00a5":"$";
+var profit=(o.salesAmt||0)-(o.purchaseAmt||0);
+var pct=o.salesAmt>0?((profit/o.salesAmt)*100).toFixed(1)+"%":"\u2014";
+var banner="\u3010"+(o.id||"\u2014")+"\u3011  \u5408\u540c "+(o.contract||"\u2014")+"  \uff5c  "+(o.supplier||"\u2014")+"  \uff5c  "+(o.cur||"")+"  "+(o.qty||0)+"\u67dc  \u8d26\u671f"+(o.days||0)+"\u5929  \uff5c  \u91c7\u8d2d "+cs+F(o.purchaseAmt||0)+"   \u9500\u552e "+cs+F(o.salesAmt||0)+"   \u6bdb\u5229 "+cs+(profit>=0?"+":"")+F(profit)+" ("+pct+")"+(o.deposit?"  \uff5c  \u4fdd\u8bc1\u91d1 "+cs+F(o.deposit)+(o.depositDate?" ("+o.depositDate+")":""):"")+(o.invoiceNo?"  \uff5c  \u53d1\u7968 "+o.invoiceNo:"");
+var r0=rows.length;
+push([banner],"ohead");merges.push({s:{r:r0,c:0},e:{r:r0,c:COLS-1}});
+push(PH.slice(),"phead");
+var sPD=0,sPA=0,sDA=0,sRA=0,sUP=0;
+if(!o.payments.length)push(["","\u6682\u65e0\u4ed8\u6b3e\u8bb0\u5f55","","","","","","","","","","","",""],"pay");
+o.payments.forEach(function(pm){
+var pd=pm.payDuAmt||pm.paidAmt||0;
+sPD+=pd;sPA+=pm.paidAmt||0;sDA+=pm.dueAmt||0;sRA+=pm.receivedAmt||0;sUP+=pm.unpaid||0;
+var st=_xcd(pm,today);
+var mt=st.indexOf("\u903e\u671f")===0?"pay_over":(st.indexOf("\u5269")===0&&parseInt(st.slice(1),10)<=10)?"pay_warn":(st.indexOf("\u2713")===0?"pay_settled":"pay");
+push([pm.seq,pm.ratio||"",pm.cur||o.cur,pm.payDuDate||pm.payDate||"",_xm(pd),pm.payDate||"",_xm(pm.paidAmt),pm.dueDate||"",st,_xm(pm.dueAmt),pm.actualDate||"",_xm(pm.receivedAmt),_xm(pm.unpaid),pm.note||""],mt);});
+gPD+=sPD;gPA+=sPA;gDA+=sDA;gRA+=sRA;gUP+=sUP;
+push(["\u5c0f\u8ba1","","","",_xm(sPD),"",_xm(sPA),"","",_xm(sDA),"",_xm(sRA),_xm(sUP),""],"sub");
+push([],"blank");});
+if(orders.length>1)push(["\u677f\u5757\u5408\u8ba1","","","",_xm(gPD),"",_xm(gPA),"","",_xm(gDA),"",_xm(gRA),_xm(gUP),""],"total");
+var ws=XLSX.utils.aoa_to_sheet(rows);
+ws["!merges"]=merges;
+ws["!cols"]=[{wch:6},{wch:8},{wch:6},{wch:12},{wch:13},{wch:12},{wch:13},{wch:12},{wch:14},{wch:13},{wch:12},{wch:13},{wch:12},{wch:28}];
+// 应用样式 (xlsx-js-style 生效; 基础版会静默忽略, 结构仍可读)
+var styleRows={kpihead:1,kpival:1,phead:1,pay:1,pay_settled:1,pay_warn:1,pay_over:1,sub:1,total:1};
+for(var r=0;r<rows.length;r++){
+var m2=meta[r],sty=_XS[m2];if(!sty)continue;
+var cMax=styleRows[m2]?COLS:Math.max(rows[r].length,1);
+for(var c=0;c<cMax;c++){
+var addr=XLSX.utils.encode_cell({r:r,c:c});
+if(!ws[addr])ws[addr]={v:"",t:"s"};
+ws[addr].s=sty;}}
+return ws;}
+function exportOrderXlsx(pid,oi){
+if(typeof XLSX==="undefined"){toast("XLSX\u672a\u52a0\u8f7d");return;}
+var o=LEDGER[pid][oi];if(!o)return;
+var ws=buildLedgerSheet([o],(o.id||"\u8ba2\u5355")+" \u4e1a\u52a1\u53f0\u8d26",false);
+var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,safeFn(o.id||"\u53f0\u8d26").replace(/[\[\]]/g,"_").slice(0,31)||"\u53f0\u8d26");
+XLSX.writeFile(wb,safeFn(o.id||"\u8ba2\u5355")+"_\u53f0\u8d26_"+new Date().toISOString().slice(0,10)+".xlsx");
+toast("\u5df2\u5bfc\u51faExcel");}
+function exportBizLedger(pid){
+if(typeof XLSX==="undefined"){toast("XLSX\u672a\u52a0\u8f7d");return;}
+var ld=LEDGER[pid];if(!ld||!ld.length){toast("\u65e0\u6570\u636e\u53ef\u5bfc\u51fa");return;}
+var pn="";P.forEach(function(p){if(p.id===pid)pn=p.name;});
+var ws=buildLedgerSheet(ld,(pn||"\u4e1a\u52a1")+" \u4e1a\u52a1\u53f0\u8d26",true);
+var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,safeFn(pn||"\u53f0\u8d26").slice(0,31)||"\u53f0\u8d26");
+XLSX.writeFile(wb,safeFn(pn||"\u4e1a\u52a1\u53f0\u8d26")+"_\u5168\u90e8\u8ba2\u5355_"+new Date().toISOString().slice(0,10)+".xlsx");
+toast("\u5df2\u5bfc\u51fa "+ld.length+" \u4e2a\u8ba2\u5355");}
+function importOrderXlsx(pid,oi){
+if(typeof XLSX==="undefined"){toast("XLSX\u672a\u52a0\u8f7d");return;}
+var o=LEDGER[pid][oi];if(!o)return;
+var inp=document.createElement("input");inp.type="file";inp.accept=".xlsx,.xls";
+inp.onchange=function(e){
+var f=e.target.files[0];if(!f)return;
+var rd=new FileReader();
+rd.onload=function(ev){
+try{
+var wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array",cellDates:true});
+var ws=wb.Sheets[wb.SheetNames[0]];
+var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+// 定位表头行(兼容模板文件/单笔导出/板块整体导出)
+var hIdx=-1,hd=null;
+for(var r=0;r<Math.min(rows.length,25);r++){
+var cand=(rows[r]||[]).map(function(x){return String(x).replace(/\s/g,"");});
+if(cand.indexOf("\u5e94\u4ed8\u91d1\u989d")>=0||cand.indexOf("\u4ed8\u6b3e\u6bd4\u4f8b")>=0){hIdx=r;hd=cand;break;}}
+if(hIdx<0){toast("\u672a\u8bc6\u522b\u8868\u5934\uff0c\u8bf7\u4f7f\u7528\u3010\u6a21\u677f\u5bfc\u51fa\u3011\u751f\u6210\u7684\u683c\u5f0f");return;}
+function ci(n){return hd.indexOf(n);}
+var iSeq=ci("\u4ed8\u6b3e\u5e8f\u53f7");if(iSeq<0)iSeq=ci("#");
+var iRatio=ci("\u4ed8\u6b3e\u6bd4\u4f8b");if(iRatio<0)iRatio=ci("\u6bd4\u4f8b");
+var iCur=ci("\u5e01\u79cd"),iPDD=ci("\u5e94\u4ed8\u65e5\u671f"),iPDA=ci("\u5e94\u4ed8\u91d1\u989d"),iPD=ci("\u5b9e\u4ed8\u65e5\u671f"),iPA=ci("\u5b9e\u4ed8\u91d1\u989d");
+var iDD=ci("\u5e94\u56de\u65e5\u671f"),iDA=ci("\u5e94\u56de\u91d1\u989d"),iAD=ci("\u5b9e\u56de\u65e5\u671f"),iRA=ci("\u5df2\u56de\u91d1\u989d"),iUP=ci("\u672a\u56de\u91d1\u989d"),iNote=ci("\u5907\u6ce8");
+var items=[];
+for(var r2=hIdx+1;r2<rows.length;r2++){
+var row=rows[r2];if(!row)continue;
+var allEmpty=true;for(var c=0;c<row.length;c++){if(row[c]!==""&&row[c]!=null){allEmpty=false;break;}}
+if(allEmpty)continue;
+var _c0=String(row[0]).replace(/\s/g,"");
+if(_c0.indexOf("\u3010")===0)break;
+if(_c0==="\u5408\u8ba1"||_c0==="\u5c0f\u8ba1"||_c0==="\u677f\u5757\u5408\u8ba1")continue;
+var _isHd=false;for(var hc=0;hc<row.length;hc++){if(String(row[hc]).replace(/\s/g,"")==="\u5e94\u4ed8\u91d1\u989d"){_isHd=true;break;}}
+if(_isHd)continue;
+var num=function(i){if(i<0)return 0;var v=parseFloat(String(row[i]).replace(/[,\uff0c\u20ac$\u00a5\s%]/g,""));return isNaN(v)?0:v;};
+var str2=function(i){return i<0?"":String(row[i]==null?"":row[i]).trim();};
+var dueAmt=num(iDA),recvAmt=num(iRA);
+var up=(iUP>=0&&String(row[iUP]).trim()!=="")?num(iUP):Math.round((dueAmt-recvAmt)*100)/100;
+items.push({seq:(iSeq>=0&&String(row[iSeq]).trim()!=="")?row[iSeq]:0,ratio:str2(iRatio),cur:(str2(iCur)||o.cur),
+payDuDate:xlsDate(iPDD>=0?row[iPDD]:""),payDuAmt:num(iPDA),
+payDate:xlsDate(iPD>=0?row[iPD]:""),paidAmt:num(iPA),
+dueDate:xlsDate(iDD>=0?row[iDD]:""),dueAmt:dueAmt,
+actualDate:xlsDate(iAD>=0?row[iAD]:""),receivedAmt:recvAmt,unpaid:up,note:str2(iNote)});}
+if(!items.length){toast("\u672a\u89e3\u6790\u5230\u6709\u6548\u6570\u636e\u884c");return;}
+var replace=false;
+if(o.payments.length){replace=confirm("\u89e3\u6790\u5230 "+items.length+" \u6761\u8bb0\u5f55\u3002\n\n\u786e\u5b9a = \u8986\u76d6\u73b0\u6709 "+o.payments.length+" \u6761\u4ed8\u6b3e\u8bb0\u5f55\n\u53d6\u6d88 = \u8ffd\u52a0\u5230\u73b0\u6709\u8bb0\u5f55\u4e4b\u540e");}
+if(replace)o.payments=items;else o.payments=o.payments.concat(items);
+o.payments.forEach(function(pm,i){if(!pm.seq)pm.seq=i+1;});
+savD();toast("\u5df2\u5bfc\u5165 "+items.length+" \u6761\u4ed8\u6b3e\u8bb0\u5f55");render();
+}catch(err){toast("\u5bfc\u5165\u5931\u8d25: "+err.message);}};
+rd.readAsArrayBuffer(f);};
+inp.click();}
 
 </script>
 </body>

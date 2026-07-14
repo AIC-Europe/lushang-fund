@@ -4076,6 +4076,7 @@ var rows=[ORDER_XLSX_HEADERS.slice(),
 [1,"50%",o.cur||"USD","2026-01-15",10000,"2026-01-15",10000,"2026-05-15",9500,"","0","0","\u793a\u4f8b\u884c\uff0c\u5bfc\u5165\u524d\u8bf7\u66ff\u6362\u4e3a\u5b9e\u9645\u6570\u636e"]];
 var ws=XLSX.utils.aoa_to_sheet(rows);
 ws["!cols"]=[{wch:8},{wch:8},{wch:6},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12},{wch:24}];
+for(var tc=0;tc<rows[0].length;tc++){var ta=XLSX.utils.encode_cell({r:0,c:tc});if(ws[ta])ws[ta].s=_XS.phead;}
 var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"\u5bfc\u5165\u6a21\u677f");
 XLSX.writeFile(wb,safeFn(o.id||"\u8ba2\u5355")+"_\u5bfc\u5165\u6a21\u677f.xlsx");toast("\u6a21\u677f\u5df2\u5bfc\u51fa");}
 // ═══ 分区式样式化台账导出 (与界面同构: 订单横幅 + 明细 + 小计) ═══
@@ -4101,25 +4102,31 @@ if(isRecvSettled(pm))return"\u2713 \u5df2\u56de\u6b3e";
 var d=Math.ceil((new Date(pm.dueDate)-today)/86400000);
 if(isNaN(d))return"";
 return d<0?("\u903e\u671f"+(-d)+"\u5929"):("\u5269"+d+"\u5929");}
+function _xd(s){
+if(!s)return"";
+var m=String(s).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+if(!m)return String(s);
+return{v:new Date(+m[1],+m[2]-1,+m[3]),t:"d",z:"yyyy-mm-dd"};}
 function buildLedgerSheet(orders,titleText,withKpi){
 var COLS=14,rows=[],meta=[],merges=[];
+var EC=XLSX.utils.encode_cell;
 var today=new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
 function push(r,m){rows.push(r);meta.push(m);}
-// 标题
 push([titleText],"title");merges.push({s:{r:0,c:0},e:{r:0,c:COLS-1}});
-push(["\u5bfc\u51fa\u65e5\u671f "+new Date().toISOString().slice(0,10)+"   \u5171 "+orders.length+" \u4e2a\u8ba2\u5355   \u72b6\u6001\u57fa\u4e8e\u5bfc\u51fa\u5f53\u65e5\u8ba1\u7b97"],"subtitle");merges.push({s:{r:1,c:0},e:{r:1,c:COLS-1}});
+push(["\u5bfc\u51fa\u65e5\u671f "+new Date().toISOString().slice(0,10)+"   \u5171 "+orders.length+" \u4e2a\u8ba2\u5355   \u5269\u4f59\u5929\u6570/\u672a\u56de\u91d1\u989d/\u5c0f\u8ba1/\u5408\u8ba1\u5747\u4e3a\u516c\u5f0f, \u6253\u5f00\u65f6\u81ea\u52a8\u6309\u5f53\u5929\u91cd\u7b97"],"subtitle");merges.push({s:{r:1,c:0},e:{r:1,c:COLS-1}});
 push([],"blank");
-// KPI
+var kpiRecvCell=null,kpiUnCell=null;
 if(withKpi){
 var tP=0,tS=0,tR=0,tU=0;
 orders.forEach(function(o){tP+=o.purchaseAmt||0;tS+=o.salesAmt||0;o.payments.forEach(function(pm){tR+=pm.receivedAmt||0;tU+=pm.unpaid||0;});});
 var kr=rows.length;
+kpiRecvCell=_xm(tR);kpiUnCell=_xm(tU);
 push(["\u603b\u91c7\u8d2d\u989d","","\u603b\u9500\u552e\u989d","","\u6bdb\u5229\u6da6","","\u5df2\u6536\u56de\u6b3e","","\u5f85\u56de\u6b3e","","","","",""],"kpihead");
-push([_xm(tP),"",_xm(tS),"",_xm(tS-tP),"",_xm(tR),"",_xm(tU),"","","","",""],"kpival");
+push([_xm(tP),"",_xm(tS),"",_xm(tS-tP),"",kpiRecvCell,"",kpiUnCell,"","","","",""],"kpival");
 for(var kc=0;kc<10;kc+=2){merges.push({s:{r:kr,c:kc},e:{r:kr,c:kc+1}});merges.push({s:{r:kr+1,c:kc},e:{r:kr+1,c:kc+1}});}
 push([],"blank");}
 var PH=["#","\u6bd4\u4f8b","\u5e01\u79cd","\u5e94\u4ed8\u65e5\u671f","\u5e94\u4ed8\u91d1\u989d","\u5b9e\u4ed8\u65e5\u671f","\u5b9e\u4ed8\u91d1\u989d","\u5e94\u56de\u65e5\u671f","\u5269\u4f59\u5929\u6570/\u72b6\u6001","\u5e94\u56de\u91d1\u989d","\u5b9e\u56de\u65e5\u671f","\u5df2\u56de\u91d1\u989d","\u672a\u56de\u91d1\u989d","\u5907\u6ce8"];
-var gPD=0,gPA=0,gDA=0,gRA=0,gUP=0;
+var subRows=[];
 orders.forEach(function(o){
 var cs=o.cur==="EUR"?"\u20ac":o.cur==="CNY"?"\u00a5":"$";
 var profit=(o.salesAmt||0)-(o.purchaseAmt||0);
@@ -4128,28 +4135,42 @@ var banner="\u3010"+(o.id||"\u2014")+"\u3011  \u5408\u540c "+(o.contract||"\u201
 var r0=rows.length;
 push([banner],"ohead");merges.push({s:{r:r0,c:0},e:{r:r0,c:COLS-1}});
 push(PH.slice(),"phead");
-var sPD=0,sPA=0,sDA=0,sRA=0,sUP=0;
+var pS=rows.length,sPD=0,sPA=0,sDA=0,sRA=0,sUP=0;
 if(!o.payments.length)push(["","\u6682\u65e0\u4ed8\u6b3e\u8bb0\u5f55","","","","","","","","","","","",""],"pay");
 o.payments.forEach(function(pm){
+var r=rows.length;
 var pd=pm.payDuAmt||pm.paidAmt||0;
 sPD+=pd;sPA+=pm.paidAmt||0;sDA+=pm.dueAmt||0;sRA+=pm.receivedAmt||0;sUP+=pm.unpaid||0;
+var H=EC({r:r,c:7}),J=EC({r:r,c:9}),K=EC({r:r,c:10}),L=EC({r:r,c:11});
 var st=_xcd(pm,today);
 var mt=st.indexOf("\u903e\u671f")===0?"pay_over":(st.indexOf("\u5269")===0&&parseInt(st.slice(1),10)<=10)?"pay_warn":(st.indexOf("\u2713")===0?"pay_settled":"pay");
-push([pm.seq,pm.ratio||"",pm.cur||o.cur,pm.payDuDate||pm.payDate||"",_xm(pd),pm.payDate||"",_xm(pm.paidAmt),pm.dueDate||"",st,_xm(pm.dueAmt),pm.actualDate||"",_xm(pm.receivedAmt),_xm(pm.unpaid),pm.note||""],mt);});
-gPD+=sPD;gPA+=sPA;gDA+=sDA;gRA+=sRA;gUP+=sUP;
-push(["\u5c0f\u8ba1","","","",_xm(sPD),"",_xm(sPA),"","",_xm(sDA),"",_xm(sRA),_xm(sUP),""],"sub");
+var stF='IF(OR(AND('+K+'<>"",'+L+'>0),AND('+J+'>0,'+L+'>='+J+')),"\u2713 \u5df2\u56de\u6b3e",IF('+H+'="","",IF('+H+'-TODAY()<0,"\u903e\u671f"&ABS('+H+'-TODAY())&"\u5929","\u5269"&('+H+'-TODAY())&"\u5929")))';
+var stCell={v:st||"",t:"s",f:stF};
+var compUp=Math.round(((pm.dueAmt||0)-(pm.receivedAmt||0))*100)/100;
+var upCell=Math.abs((pm.unpaid||0)-compUp)<=0.011?{t:"n",v:Math.round((pm.unpaid||0)*100)/100,f:'IF('+J+'="","",ROUND('+J+'-'+L+',2))',z:"#,##0.00"}:_xm(pm.unpaid);
+push([pm.seq,pm.ratio||"",pm.cur||o.cur,_xd(pm.payDuDate||pm.payDate),_xm(pd),_xd(pm.payDate),_xm(pm.paidAmt),_xd(pm.dueDate),stCell,_xm(pm.dueAmt),_xd(pm.actualDate),_xm(pm.receivedAmt),upCell,pm.note||""],mt);});
+var pE=rows.length-1,subR=rows.length;
+function subCell(v,c){if(pE<pS)return _xm(v);return{t:"n",v:Math.round(v*100)/100,f:"SUM("+EC({r:pS,c:c})+":"+EC({r:pE,c:c})+")",z:"#,##0.00"};}
+push(["\u5c0f\u8ba1","","","",subCell(sPD,4),"",subCell(sPA,6),"","",subCell(sDA,9),"",subCell(sRA,11),subCell(sUP,12),""],"sub");
+subRows.push(subR);
 push([],"blank");});
-if(orders.length>1)push(["\u677f\u5757\u5408\u8ba1","","","",_xm(gPD),"",_xm(gPA),"","",_xm(gDA),"",_xm(gRA),_xm(gUP),""],"total");
+if(orders.length>1){
+var gPD=0,gPA=0,gDA=0,gRA=0,gUP=0;
+orders.forEach(function(o){o.payments.forEach(function(pm){gPD+=pm.payDuAmt||pm.paidAmt||0;gPA+=pm.paidAmt||0;gDA+=pm.dueAmt||0;gRA+=pm.receivedAmt||0;gUP+=pm.unpaid||0;});});
+function totCell(v,c){return{t:"n",v:Math.round(v*100)/100,f:"SUM("+subRows.map(function(r){return EC({r:r,c:c});}).join(",")+")",z:"#,##0.00"};}
+push(["\u677f\u5757\u5408\u8ba1","","","",totCell(gPD,4),"",totCell(gPA,6),"","",totCell(gDA,9),"",totCell(gRA,11),totCell(gUP,12),""],"total");}
+if(kpiRecvCell&&subRows.length){
+kpiRecvCell.f="SUM("+subRows.map(function(r){return EC({r:r,c:11});}).join(",")+")";
+kpiUnCell.f="SUM("+subRows.map(function(r){return EC({r:r,c:12});}).join(",")+")";}
 var ws=XLSX.utils.aoa_to_sheet(rows);
 ws["!merges"]=merges;
 ws["!cols"]=[{wch:6},{wch:8},{wch:6},{wch:12},{wch:13},{wch:12},{wch:13},{wch:12},{wch:14},{wch:13},{wch:12},{wch:13},{wch:12},{wch:28}];
-// 应用样式 (xlsx-js-style 生效; 基础版会静默忽略, 结构仍可读)
 var styleRows={kpihead:1,kpival:1,phead:1,pay:1,pay_settled:1,pay_warn:1,pay_over:1,sub:1,total:1};
 for(var r=0;r<rows.length;r++){
 var m2=meta[r],sty=_XS[m2];if(!sty)continue;
 var cMax=styleRows[m2]?COLS:Math.max(rows[r].length,1);
 for(var c=0;c<cMax;c++){
-var addr=XLSX.utils.encode_cell({r:r,c:c});
+var addr=EC({r:r,c:c});
 if(!ws[addr])ws[addr]={v:"",t:"s"};
 ws[addr].s=sty;}}
 return ws;}

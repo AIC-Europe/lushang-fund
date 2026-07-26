@@ -253,8 +253,26 @@ var BIZ_INFO={
 },
 };
 // ═══ Business Ledger Data ═══
-var LEDGER_VER=7;
+var LEDGER_VER=9;
 var LEDGER={
+8:[
+{id:"H1",contract:"LSDGEMC20260316001",terms:"CIF",supplier:"一汽欧洲 FAW Europe B.V.",qty:200,origin:"中国",customer:"EURASIA MOTOR COMPANY S.R.L. (意大利)",cur:"EUR",days:120,feeRate:0,purchaseAmt:3169520.00,salesAmt:3504377.49,deposit:700875.50,depositDate:"2026-03-18",invoiceDate:"",invoiceNo:"",payments:[
+{seq:1,ratio:"20%",cur:"EUR",payDuDate:"",payDuAmt:0,payDate:"",paidAmt:0,dueDate:"2026-03-18",actualDate:"2026-03-18",dueAmt:700875.50,receivedAmt:700875.50,unpaid:0,note:"预收定金20% 中信保货权 (3/18银行两笔€500,000+€200,875.50)"},
+{seq:2,ratio:"",cur:"EUR",payDuDate:"2026-03-19",payDuAmt:3169520.00,payDate:"2026-03-19",paidAmt:3191996.00,dueDate:"",actualDate:"",dueAmt:0,receivedAmt:0,unpaid:0,note:"采购付款5笔: 3/19 €656,380 + 3/20 €2,010,816 + 4/24 €524,800; 多付€22,476挂预付(DATEV 70530)"},
+{seq:3,ratio:"",cur:"EUR",payDuDate:"2026-07-10",payDuAmt:112200.00,payDate:"2026-07-10",paidAmt:112200.00,dueDate:"",actualDate:"",dueAmt:0,receivedAmt:0,unpaid:0,note:"服务费付款 JIYUAN(HK): 另有CNY 30,721.57(7/10)及银行手续费€183.30"},
+{seq:4,ratio:"80%",cur:"EUR",payDuDate:"",payDuAmt:0,payDate:"",paidAmt:0,dueDate:"2026-07-18",actualDate:"",dueAmt:2803501.99,receivedAmt:2147028.03,unpaid:656473.96,note:"余款: 7/6已收€2,147,028.03, 截至7/23未再回款; 剩余€656,473.96到期8/22(展期)"}]},
+{id:"H2",contract:"LSDGEMC20260701",terms:"CIF",supplier:"FAW EUROPE B.V.",qty:201,origin:"中国",customer:"EURASIA MOTOR COMPANY S.R.L. (意大利)",cur:"EUR",days:120,feeRate:0,purchaseAmt:2870000.00,salesAmt:3193603.00,deposit:638709.40,depositDate:"2026-07-06",invoiceDate:"",invoiceNo:"",payments:[
+{seq:1,ratio:"20%",cur:"EUR",payDuDate:"",payDuAmt:0,payDate:"",paidAmt:0,dueDate:"2026-07-06",actualDate:"2026-07-06",dueAmt:638709.40,receivedAmt:638709.40,unpaid:0,note:"预收定金20% (7/6银行两笔€500,000+€138,720.60)"},
+{seq:2,ratio:"",cur:"EUR",payDuDate:"2026-07-08",payDuAmt:2870000.00,payDate:"2026-07-08",paidAmt:2870000.00,dueDate:"",actualDate:"",dueAmt:0,receivedAmt:0,unpaid:0,note:"采购付款201台红旗HS3 (7/8银行 FAW 2026FAWITA004)"},
+{seq:3,ratio:"80%",cur:"EUR",payDuDate:"",payDuAmt:0,payDate:"",paidAmt:0,dueDate:"2026-11-05",actualDate:"",dueAmt:2554893.60,receivedAmt:0,unpaid:2554893.60,note:"余款待回(截至7/23未收), 到期2026-11-05"}]}
+],
+9:[
+{id:"G1",contract:"LSDGEMC20260428001",terms:"CIP",supplier:"广汽欧洲 GAC Motor Europe B.V.",qty:100,origin:"中国",customer:"DREAMCARS NORTHSPAIN SL (西班牙)",cur:"EUR",days:120,feeRate:0,purchaseAmt:2300000.00,salesAmt:2468341.33,deposit:493668.27,depositDate:"2026-04-30",invoiceDate:"",invoiceNo:"",payments:[
+{seq:1,ratio:"20%",cur:"EUR",payDuDate:"",payDuAmt:0,payDate:"",paidAmt:0,dueDate:"2026-04-30",actualDate:"2026-04-30",dueAmt:493668.27,receivedAmt:493668.27,unpaid:0,note:"预收定金20% (100台广汽埃安)"},
+{seq:2,ratio:"",cur:"EUR",payDuDate:"2026-06-23",payDuAmt:2300000.00,payDate:"2026-06-23",paidAmt:807800.00,dueDate:"",actualDate:"",dueAmt:0,receivedAmt:0,unpaid:0,note:"采购付款: 6/23付€807,800予广汽欧洲(GC-20260429-0087), 其余分批待付"},
+{seq:3,ratio:"",cur:"EUR",payDuDate:"2026-06-29",payDuAmt:125248.00,payDate:"2026-06-29",paidAmt:125248.00,dueDate:"",actualDate:"",dueAmt:0,receivedAmt:0,unpaid:0,note:"服务/物流费 JIYUAN(HK) 3笔: 5/15 €48,760 + 6/3 €3,180 + 6/29 €73,308"},
+{seq:4,ratio:"80%",cur:"EUR",payDuDate:"",payDuAmt:0,payDate:"",paidAmt:0,dueDate:"2026-09-04",actualDate:"",dueAmt:1974673.06,receivedAmt:1175679.68,unpaid:798993.38,note:"余款分期: 6月9笔€926,959.82 + 7月13笔€248,719.86(截至7/23已收€1,175,679.68), 到期9/4与10/21"}]}
+],
 0:[
 {id:"T1",contract:"LSDETE20250604",terms:"FOB",supplier:"TECHNO EXPORTS",qty:6,origin:"印度",customer:"智樂生活科技有限公司",cur:"EUR",days:120,feeRate:0.03,purchaseAmt:60928,salesAmt:62392.10,deposit:6092.80,depositDate:"2025-06-23",invoiceDate:"2025-06-23",invoiceNo:"LSDGSL250604-T1",payments:[
 {seq:1,ratio:"50%",cur:"EUR",payDate:"2025-06-23",paidAmt:30464,dueDate:"2025-10-21",actualDate:"2025-10-22",dueAmt:28149.65,receivedAmt:28150,unpaid:-0.35,note:"21号单算货款下一笔11/25货款物流一起结算"},
@@ -354,10 +372,37 @@ var LEDGER={
 {seq:1,ratio:"100%",cur:"USD",payDate:"2026-04-02",paidAmt:180218.67,dueDate:"2026-09-29",actualDate:"",dueAmt:168035.13,receivedAmt:0,unpaid:168035.13,note:""}]}
 ],
 };
+// 种子留底(深拷贝): 云端数据异常(Firebase数组强转/空数组丢失)时用于恢复
+var LEDGER_SEED=JSON.parse(JSON.stringify(LEDGER));
+// 台账消毒: 修复 Firebase 同步造成的结构损坏 —
+// (a) 键值不是数组(null/undefined/对象) → 恢复种子或置空 (b) 订单缺 payments(空数组被Firebase丢弃) → 补[]
+function sanitizeLedger(){
+try{
+for(var k in LEDGER){
+if(!Array.isArray(LEDGER[k])){LEDGER[k]=LEDGER_SEED[k]?JSON.parse(JSON.stringify(LEDGER_SEED[k])):[];continue;}
+LEDGER[k].forEach(function(o){if(o&&!Array.isArray(o.payments))o.payments=[];});
+}
+}catch(e){}}
+sanitizeLedger();
+// 台账种子合并: 云端数据基于旧版本时, 把种子新增的订单(按 订单号|合同号 识别)合并进来, 不动用户已有/已改订单
+function mergeSeedIntoLedger(){
+var added=0;
+try{
+for(var k in LEDGER_SEED){
+var seedArr=LEDGER_SEED[k];if(!Array.isArray(seedArr)||!seedArr.length)continue;
+if(!Array.isArray(LEDGER[k]))LEDGER[k]=[];
+var have={};LEDGER[k].forEach(function(o){if(o)have[(o.id||"")+"|"+(o.contract||"")]=1;});
+seedArr.forEach(function(so){
+var key=(so.id||"")+"|"+(so.contract||"");
+if(!have[key]){LEDGER[k].push(JSON.parse(JSON.stringify(so)));have[key]=1;added++;}
+});}
+}catch(e){}
+return added;}
+
 var TXI=100;
 function mT(pid,type,d,amt,party,remark,note){return{id:TXI++,pid:pid,type:type,date:d,amount:amt,party:party||"",remark:remark||"",note:note||""};}
 var TX=[];
-var TX_VER=6;
+var TX_VER=7;
 function seedTx(){var s=[];
 // ═══ JAN EUR ═══
 s.push(mT(4,"OUT","2026-01-23",289335.16,"Beijing Youaiyi Innovation Technology","Transfer LSYAECG20251201014","水杯EUR付款"));
@@ -389,7 +434,7 @@ s.push(mT(1,"IN","2026-03-09",67828.62,"SMART LIFE TECHNOLOGY LIMITED","Local Cl
 s.push(mT(1,"IN","2026-03-17",38998.67,"SMART LIFE TECHNOLOGY LIMITED","Local Clearing Inward GPK","泥炭回款 AV25-0227"));
 s.push(mT(8,"IN","2026-03-18",500000.00,"EURASIA MOTOR COMPANY S.R.L.","ACCONTO CONTRACT LSDGEMC20260316001 DEL 16 03 26","红旗定金"));
 s.push(mT(8,"IN","2026-03-18",200875.50,"EURASIA MOTOR COMPANY S.R.L.","ACCONTO CONTRACT LSDGEMC20260316001 DEL 16 03 26","红旗定金续"));
-s.push(mT(8,"OUT","2026-03-19",656380.00,"FAW EUROPE B.V.","Transfer chekuandingjin","红旗采购付款"));
+s.push(mT(8,"OUT","2026-03-19",656380.00,"FAW EUROPE B.V.","Transfer chekuandingjin","红旗0701采购付款"));
 s.push(mT(8,"OUT","2026-03-20",10816.00,"FAW EUROPE B.V.","Local Clearing Outward chekuan","红旗采购"));
 s.push(mT(8,"OUT","2026-03-20",1000000.00,"FAW EUROPE B.V.","Local Clearing Outward chekuan","红旗采购大额"));
 s.push(mT(8,"OUT","2026-03-20",1000000.00,"FAW EUROPE B.V.","Local Clearing Outward chekuan","红旗采购大额2"));
@@ -415,7 +460,7 @@ s.push(mT(4,"IN","2026-04-24",249468.22,"U.I.E INTERNATIONAL LIMITED","Local Cle
 s.push(mT(1,"IN","2026-04-27",38406.45,"SMART LIFE TECHNOLOGY LIMITED","Local Clearing Inward GPK AV25-0245","泥炭回款 GPK"));
 s.push(mT(9,"IN","2026-04-30",493668.27,"DREAMCARS NORTHSPAIN SL","Local Clearing Inward PAGO FRA LSDGEMC20260428001","广汽回款 定金"));
 s.push(mT(9,"OUT","2026-04-30",690000.00,"GAC Motor Europe B.V.","Local Clearing Outward GC-20260429-0087","广汽采购付款"));
-s.push(mT(8,"OUT","2026-04-24",524800.00,"FAW EUROPE B.V.","Local Clearing Outward hongqi 2026FAW020051HQ","红旗采购付款"));
+s.push(mT(8,"OUT","2026-04-24",524800.00,"FAW EUROPE B.V.","Local Clearing Outward hongqi 2026FAW020051HQ","红旗0701采购付款"));
 // APR USD
 s.push(mT(5,"OUT","2026-04-02",180218.67,"Beijing Youaiyi Innovation Technology","Transfer LSYAECG202603162603","水杯USD付款"));
 s.push(mT(0,"IN","2026-04-02",66502.00,"SMART LIFE TECHNOLOGY LIMITED","International Inward /ROC/TR1415800606 URI/DOWN PAYMENT","椰壳预收"));
@@ -646,6 +691,68 @@ s.push(mT(99,"OUT","2026-06-01",8.00,"","Corporate Account Fee 202605","银行�
 s.push(mT(99,"OUT","2026-06-01",8.00,"","Corporate Account Fee 202605","银行月费"));
 s.push(mT(99,"OUT","2026-06-01",34.00,"VATTENFALL EUROPE SALES","水电费","水电费"));
 s.push(mT(99,"OUT","2026-06-01",164.98,"Vodafone GmbH","电话费","通讯费"));
+// ═══ 2026-06-30 银行结息 (来源: DATEV Kontoblatt 062026 科目4970, 补齐6月对账差) ═══
+s.push(mT(99,"IN","2026-06-30",706.15,"Bank of China Hamburg","Zinsen/Interest 20260630","银行利息收入"));
+s.push(mT(99,"OUT","2026-06-30",186.25,"Bank of China Hamburg","Charges 20260630","银行费用(结息)"));
+s.push(mT(98,"IN","2026-06-30",199.63,"Bank of China Hamburg","Zinsen/Interest USD 20260630","银行利息收入"));
+s.push(mT(98,"OUT","2026-06-30",52.65,"Bank of China Hamburg","Charges USD 20260630","银行费用(结息)"));
+// ═══ JUL 2026 (1-23) 银行流水导入 · 来源: 德国7_1-7_24.xls 三账户对账单 ═══
+// ── EUR 账户 DE95...1269 ──
+s.push(mT(99,"OUT","2026-07-01",34.00,"VATTENFALL EUROPE SALES","Abschlag S/836610008938","水电费"));
+s.push(mT(99,"OUT","2026-07-01",8.00,"","Corporate Account Fee 202606","银行月费"));
+s.push(mT(99,"OUT","2026-07-01",8.00,"","Corporate Account Fee 202606","银行月费"));
+s.push(mT(99,"OUT","2026-07-01",3701.09,"OBJEKTGESELLSCHAFT KAISERKAI","Miete+NK MieterNr2100+0113","房租"));
+s.push(mT(99,"OUT","2026-07-03",20.00,"CHINA CONSTRUCTION BANK","PAYMENT FOR CHG","银行手续费"));
+s.push(mT(4,"IN","2026-07-03",261394.21,"U.I.E INTERNATIONAL LIMITED","Local Clearing Inward PAYMENT FOR GOODS","水杯EUR回款"));
+s.push(mT(8,"IN","2026-07-06",500000.00,"EURASIA MOTOR COMPANY S.R.L.","ANTICIPO CONTRACT LSDGEMC20260316001","红旗0701定金"));
+s.push(mT(8,"IN","2026-07-06",138720.60,"EURASIA MOTOR COMPANY S.R.L.","ANTICIPO CONTRACT LSDGEMC20260316001","红旗0701定金"));
+s.push(mT(8,"IN","2026-07-06",2147028.03,"EURASIA MOTOR COMPANY S.R.L.","CONTRACT LSDGEMC20260316001","红旗0316余款回款"));
+s.push(mT(99,"OUT","2026-07-07",439811.76,"LUSHANG (GERMANY) GMBH","zhuankuan EUR→USD购汇USD500,000","内部转账-转USD账户"));
+s.push(mT(8,"OUT","2026-07-08",2870000.00,"FAW EUROPE B.V.","2026FAWITA004","红旗0701采购付款"));
+s.push(mT(99,"OUT","2026-07-10",5166.52,"LUSHANG (GERMANY) GMBH","zhuankuan EUR→CNY购汇CNY40,000","内部转账-转CNY账户"));
+s.push(mT(8,"OUT","2026-07-10",112200.00,"JIYUAN (HONG KONG) INTERNATIONAL","LSDGEMC20260316001","红旗0316付款(JIYUAN)"));
+s.push(mT(99,"OUT","2026-07-10",15.00,"","Charge LSDGEMC20260316001","银行手续费"));
+s.push(mT(99,"OUT","2026-07-10",168.30,"","Charge LSDGEMC20260316001","银行手续费"));
+s.push(mT(99,"OUT","2026-07-15",1374.41,"STEUERKASSE HAMBURG","Lst 0626 STEUERNR 048/740/05466","工资税"));
+s.push(mT(99,"OUT","2026-07-15",15.00,"","SWIFT Maintenance Fee (Corp.)","银行费用"));
+s.push(mT(99,"OUT","2026-07-15",1388.34,"Fritz und Mark Legal","Invoice No.:22/2026","法律咨询费"));
+s.push(mT(99,"OUT","2026-07-15",1405.69,"Fritz und Mark Legal","Invoice No.:145/2026","法律咨询费"));
+s.push(mT(99,"OUT","2026-07-15",56.88,"Bundesanzeiger Verlag GmbH","Rechnungsnummer 97909558","公告费"));
+s.push(mT(99,"IN","2026-07-16",1055.48,"Finanzamt Hamburg","ERSTATT. 48/740/05466","税费退还"));
+s.push(mT(99,"OUT","2026-07-16",567.23,"Weibian","baoxiao","报销"));
+s.push(mT(99,"OUT","2026-07-17",1452.80,"Weibian","Reimbursement 05.2026","报销"));
+s.push(mT(99,"OUT","2026-07-17",2195.31,"Weibian","Reimbursement","报销"));
+s.push(mT(99,"OUT","2026-07-17",173.54,"Fritz und Mark Legal","Invoice No.:177/2026","法律咨询费"));
+s.push(mT(99,"OUT","2026-07-17",1785.00,"FKYT GmbH","RE2026-016","记账服务费"));
+s.push(mT(9,"IN","2026-07-22",20652.54,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-22",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(99,"OUT","2026-07-23",45.52,"Vodafone GmbH","Kd.Nr. 001947731175","通讯费"));
+s.push(mT(9,"IN","2026-07-23",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(9,"IN","2026-07-23",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(99,"OUT","2026-07-23",428.40,"Q10 Magic Power Med UG Co.KG","Rechnung Nr. 26-2026158","其他费用"));
+// ── USD 账户 DE42...9932 ──
+s.push(mT(98,"IN","2026-07-07",500000.00,"LUSHANG (GERMANY) GMBH","zhuankuan 自EUR账户购汇转入","内部转账-EUR账户转入"));
+s.push(mT(98,"OUT","2026-07-07",17.25,"","Charge","银行手续费"));
+s.push(mT(98,"OUT","2026-07-07",750.00,"","Charge","银行手续费"));
+s.push(mT(98,"OUT","2026-07-07",500000.00,"LUSAHNG (HK) INTERNATIONAL TRADE","huan kuan","还款-鲁商香港借款归还"));
+s.push(mT(98,"OUT","2026-07-10",30.62,"","Charge","银行手续费"));
+s.push(mT(0,"IN","2026-07-10",30616.05,"SMART LIFE TECHNOLOGY LIMITED","International Inward /ROC/TR1529990951","椰壳回款"));
+s.push(mT(98,"OUT","2026-07-16",24.25,"","Charge","银行手续费"));
+s.push(mT(3,"IN","2026-07-16",24251.15,"ONE SIX EIGHT SOLUTIONS PTY LTD","International Inward BUSIN 168","OTC回款"));
+// ── CNY 账户 DE68...6561 ──
+s.push(mT(97,"IN","2026-07-10",40000.00,"LUSHANG (GERMANY) GMBH","zhuankuan 自EUR账户购汇转入","内部转账-EUR账户转入"));
+s.push(mT(97,"OUT","2026-07-10",116.82,"","Charge","银行手续费"));
+s.push(mT(97,"OUT","2026-07-10",155.76,"","Charge","银行手续费"));
+s.push(mT(97,"OUT","2026-07-10",30721.57,"JIYUAN (HONG KONG) INTERNATIONAL","LSDGEMC20260316001","红旗0316人民币付款(JIYUAN)"));
 return s;}
 TX=seedTx();
 var U="",pg="dashboard",expP={},pTab={},showF={},cFilt="ALL",editTxId=null,editCell=null,bankDrill=null;
@@ -725,6 +832,23 @@ function isWithin10Days(dateStr){if(!dateStr)return false;var d=new Date(dateStr
 function isRecvSettled(pm){if(!pm)return false;if(pm.actualDate&&(pm.receivedAmt||0)>0)return true;return (pm.dueAmt>0&&(pm.receivedAmt||0)>=pm.dueAmt);}
 function getWeekOfMonth(dateStr){if(!dateStr)return 0;return Math.ceil(parseInt(dateStr.substring(8,10))/7);}
 
+// 把新种子中TX尚缺的条目合并进TX(按 日期+方向+金额 计数比对)。
+// 用于: 云端/本地存档基于旧种子时, 让种子更新(如7月流水导入)能够生效, 同时不重复、不吞用户手录数据。
+function mergeSeedIntoTX(){
+try{
+var seed=seedTx();
+var _k=function(t){return t.date+"|"+t.type+"|"+Math.round((t.amount||0)*100);};
+var have={};TX.forEach(function(t){var k=_k(t);have[k]=(have[k]||0)+1;});
+var seen={},add=[];
+seed.forEach(function(t){var k=_k(t);seen[k]=(seen[k]||0)+1;if(seen[k]>(have[k]||0))add.push(t);});
+if(add.length){add.forEach(function(t){t.id=TXI++;TX.push(t);});return add.length;}
+}catch(e){}
+return 0;}
+// 哨兵: 6/30 EUR银行结息(种子v7新增) — 若缺失说明数据仍基于旧种子
+function _txSeedStale(ver){
+if((ver||0)<TX_VER)return true;
+for(var i=0;i<TX.length;i++){var t=TX[i];if(t&&t.date==="2026-06-30"&&t.type==="IN"&&Math.abs(t.amount-706.15)<0.005)return false;}
+return true;}
 function _collectState(){
   var pd={};P.forEach(function(p,i){pd[i]={pr:p.pr,pp:p.pp};});
   return {
@@ -742,10 +866,19 @@ function _applyState(s){
   if(!s)return;
   _cloudApplying=true;
   try{
-    if(Array.isArray(s.tx)){TX=s.tx;TXI=1;TX.forEach(function(t){if(t.id>=TXI)TXI=t.id+1;if(!t.party)t.party="";if(!t.remark)t.remark="";});}
+    if(Array.isArray(s.tx)){TX=s.tx;TXI=1;TX.forEach(function(t){if(t.id>=TXI)TXI=t.id+1;if(!t.party)t.party="";if(!t.remark)t.remark="";});
+    // 云端数据基于旧种子(版本旧或缺哨兵条目): 合并新种子新增流水(如7月导入), 并标记回推云端
+    if(_txSeedStale(s.txVer)){var _added=mergeSeedIntoTX();if(_added){window._txSeedMergedInApply=true;if(typeof toast==="function")setTimeout(function(){toast("已合并 "+_added+" 笔新导入流水(种子v"+TX_VER+")");},1500);}}}
     if(Array.isArray(s.exp)){EXP=s.exp;EXI=1;EXP.forEach(function(x){if(x.id>=EXI)EXI=x.id+1;});}
     if(Array.isArray(s.rc)){RC=s.rc;RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});if(typeof migrateRC_daG==="function"&&migrateRC_daG())window._rcMigratedInApply=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())window._rcMigratedInApply=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())window._rcMigratedInApply=true;}
-    if(s.ledger&&typeof s.ledger==="object"){for(var lk in s.ledger)LEDGER[lk]=s.ledger[lk];}
+    if(s.ledger&&typeof s.ledger==="object"){var _lgStale=(s.ledgerVer||0)<LEDGER_VER;for(var lk in s.ledger){var _inc=s.ledger[lk];
+if(!Array.isArray(_inc))continue; // Firebase数组强转产生的null/对象洞: 一律不应用, 保住种子
+if(_lgStale&&_inc.length===0&&LEDGER[lk]&&LEDGER[lk].length)continue; // 旧版云端的空数组不清掉新种子
+LEDGER[lk]=_inc;}
+if(typeof sanitizeLedger==="function")sanitizeLedger(); // 修复缺失payments等结构损坏
+if(_lgStale){var _lgAdded=(typeof mergeSeedIntoLedger==="function")?mergeSeedIntoLedger():0;
+if(_lgAdded&&typeof toast==="function")setTimeout(function(){toast("已合并 "+_lgAdded+" 个台账订单(种子v"+LEDGER_VER+")");},1800);
+window._txSeedMergedInApply=true;}}
     if(s.plans){Object.keys(s.plans).forEach(function(k){var i=parseInt(k);if(P[i]){if(s.plans[k].pr)P[i].pr=s.plans[k].pr;if(s.plans[k].pp)P[i].pp=s.plans[k].pp;}});}
     if(Array.isArray(s.reimbDaily)){REIMB_DATA=s.reimbDaily;REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});}
     if(Array.isArray(s.reimbTravel)){TRAVEL_DATA=s.reimbTravel;TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});}
@@ -755,12 +888,14 @@ function _applyState(s){
     try{savDLocal();if(typeof savReimb==="function")savReimbLocal();if(typeof savDatevLocal==="function")savDatevLocal();}catch(e){}
   }catch(e){console.error("applyState:",e);}
   _cloudApplying=false;
-  if(window._rcMigratedInApply){window._rcMigratedInApply=false;try{if(typeof cloudPush==="function")cloudPush();}catch(e){}}
+  if(window._rcMigratedInApply||window._txSeedMergedInApply){window._rcMigratedInApply=false;window._txSeedMergedInApply=false;try{savDLocal();if(typeof cloudPush==="function")cloudPush();}catch(e){}}
   // 关键: 云端数据到达后刷新UI, 让用户立即看到其他同事的修改
   if(typeof render==="function"){try{render();if(typeof bMT==="function")bMT();}catch(e){}}
 }
 function cloudPush(){
   if(!USE_CLOUD||!rtdb||_cloudApplying)return;
+  // 防覆盖保护: 云端首个数据快照未到达前不推送, 避免用刚打开页面的本地(可能过期)状态整包覆盖云端较新数据
+  if(!_cloudInitDone){if(_cloudPushT)clearTimeout(_cloudPushT);_cloudPushT=setTimeout(cloudPush,800);return;}
   if(_cloudPushT)clearTimeout(_cloudPushT);
   _cloudPushT=setTimeout(function(){
     try{
@@ -967,7 +1102,21 @@ function rBackup(el){
 
 
 function savD(){savDLocal();if(!_cloudApplying)cloudPush();}
-function lodD(){try{var d=localStorage.getItem("ls-fund-tx4");var tv=localStorage.getItem("ls-fund-tx-ver");if(d&&tv&&parseInt(tv)>=TX_VER){TX=JSON.parse(d);TXI=1;TX.forEach(function(t){if(t.id>=TXI)TXI=t.id+1;if(!t.party)t.party="";if(!t.remark)t.remark="";});}var e=localStorage.getItem("ls-fund-ex4");if(e){EXP=JSON.parse(e);EXI=1;EXP.forEach(function(x){if(x.id>=EXI)EXI=x.id+1;});}var rc=localStorage.getItem("ls-fund-rc1");if(rc){RC=JSON.parse(rc);RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});}var lg=localStorage.getItem("ls-fund-ledger1");var lv=localStorage.getItem("ls-fund-ledger-ver");if(lg&&lv&&parseInt(lv)>=LEDGER_VER){var ld=JSON.parse(lg);for(var lk in ld)LEDGER[lk]=ld[lk];}var pl=localStorage.getItem("ls-fund-plan2");if(pl){var pd=JSON.parse(pl);Object.keys(pd).forEach(function(k){var i=parseInt(k);if(P[i]){P[i].pr=pd[k].pr;P[i].pp=pd[k].pp;}});}}catch(e){}}
+function lodD(){try{var d=localStorage.getItem("ls-fund-tx4");var tv=localStorage.getItem("ls-fund-tx-ver");
+if(d&&tv&&parseInt(tv)>=TX_VER){TX=JSON.parse(d);TXI=1;TX.forEach(function(t){if(t.id>=TXI)TXI=t.id+1;if(!t.party)t.party="";if(!t.remark)t.remark="";});
+if(_txSeedStale(parseInt(tv))){var _a=mergeSeedIntoTX();if(_a){savDLocal();if(typeof toast==="function")setTimeout(function(){toast("已合并 "+_a+" 笔新导入流水");},1200);}}}
+else if(d){
+// 种子版本升级: 不再整体丢弃旧存档, 而是把用户在旧种子基础上手工新增的流水合并进新种子(按 日期+方向+金额 计数比对, 防止升级吞掉手录数据)
+try{var _saved=JSON.parse(d);if(Array.isArray(_saved)){
+var _k=function(t){return t.date+"|"+t.type+"|"+Math.round((t.amount||0)*100);};
+var _cnt={};TX.forEach(function(t){var k=_k(t);_cnt[k]=(_cnt[k]||0)+1;});
+var _seen={},_extra=[];
+_saved.forEach(function(t){if(!t||!t.date)return;var k=_k(t);_seen[k]=(_seen[k]||0)+1;if(_seen[k]>(_cnt[k]||0))_extra.push(t);});
+if(_extra.length){_extra.forEach(function(t){t.id=TXI++;if(!t.party)t.party="";if(!t.remark)t.remark="";TX.push(t);});savDLocal();if(typeof toast==="function")setTimeout(function(){toast("已保留 "+_extra.length+" 笔手工录入流水(种子升级合并)");},1200);}
+}}catch(_me){}
+TXI=1;TX.forEach(function(t){if(t.id>=TXI)TXI=t.id+1;});
+}
+var e=localStorage.getItem("ls-fund-ex4");if(e){EXP=JSON.parse(e);EXI=1;EXP.forEach(function(x){if(x.id>=EXI)EXI=x.id+1;});}var rc=localStorage.getItem("ls-fund-rc1");if(rc){RC=JSON.parse(rc);RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});}var lg=localStorage.getItem("ls-fund-ledger1");var lv=localStorage.getItem("ls-fund-ledger-ver");if(lg&&lv&&parseInt(lv)>=LEDGER_VER){var ld=JSON.parse(lg);for(var lk in ld){if(Array.isArray(ld[lk]))LEDGER[lk]=ld[lk];}if(typeof sanitizeLedger==="function")sanitizeLedger();}var pl=localStorage.getItem("ls-fund-plan2");if(pl){var pd=JSON.parse(pl);Object.keys(pd).forEach(function(k){var i=parseInt(k);if(P[i]){P[i].pr=pd[k].pr;P[i].pp=pd[k].pp;}});}}catch(e){}}
 var SECTION="fund"; // "fund" or "fin" or "biz"
 var FIN_SUB="ext"; // "ext"=外部账, "int"=内部账
 var NAV_FUND=[["dashboard","◉","总览"],["main","▦","资金需求主表"],["bank","⊞","银行账户"],["gap","⇄","月度资金缺口"],["kanban","☷","项目看板"],["chart","◈","可视化"],["backup","☁","数据备份"]];
@@ -1018,7 +1167,7 @@ function hrSub(e){if(!e||e.cat!=="人工成本")return"";var n=e.note||"";if(/�
 // ═══ Operating expense filter ═══
 var OPS_CATS=["办公费","差旅费","仓储/物流","税费/关税","法律/审计","银行手续费","IT/通讯","车辆费用","其他"];
 function isOpsCat(c){return OPS_CATS.indexOf(c)>=0;}
-var BANK_ACCTS={EUR:{iban:'DE95 5141 0700 9700 4712 69',name:'Bank of China EUR',bal:{'2025-12':9600.69,'2026-01':34693.12,'2026-02':432902.27,'2026-03':1964974.01,'2026-04':1562708.57,'2026-05':816310.79,'2026-06':1909715.27}},USD:{iban:'DE42 5141 0700 9700 8599 32',name:'Bank of China USD',bal:{'2025-12':163113.18,'2026-01':180172.29,'2026-02':11093.58,'2026-03':479183.63,'2026-04':266398.73,'2026-05':239559.32}},CNY:{iban:'DE68 5141 0700 9700 9565 61',name:'Bank of China CNY',bal:{'2026-03':0,'2026-04':0,'2026-05':0}}};
+var BANK_ACCTS={EUR:{iban:'DE95 5141 0700 9700 4712 69',name:'Bank of China EUR',bal:{'2025-12':9600.69,'2026-01':34693.12,'2026-02':432902.27,'2026-03':1964974.01,'2026-04':1562708.57,'2026-05':816310.79,'2026-06':1909715.27}},USD:{iban:'DE42 5141 0700 9700 8599 32',name:'Bank of China USD',bal:{'2025-12':163113.18,'2026-01':180172.29,'2026-02':11093.58,'2026-03':479183.63,'2026-04':266398.73,'2026-05':239559.32,'2026-06':239706.30}},CNY:{iban:'DE68 5141 0700 9700 9565 61',name:'Bank of China CNY',bal:{'2026-03':0,'2026-04':0,'2026-05':0,'2026-06':0}}};
 // ═══ Expense Data ═══
 var EX_CATS=["办公费","差旅费","人工成本","仓储/物流","税费/关税","法律/审计","银行手续费","IT/通讯","车辆费用","内部转账","利息","其他"];
 var EXI=500;
@@ -1204,8 +1353,9 @@ function migrateLedgerPayDu(){
   var changed=false;
   for(var pid in LEDGER){
     if(!LEDGER.hasOwnProperty(pid))continue;
+    if(!Array.isArray(LEDGER[pid]))continue;
     LEDGER[pid].forEach(function(order){
-      if(!order.payments)return;
+      if(!order||!Array.isArray(order.payments))return;
       order.payments.forEach(function(pm){
         if(!pm.payDuDate&&pm.payDate){pm.payDuDate=pm.payDate;changed=true;}
         if((!pm.payDuAmt||pm.payDuAmt===0)&&pm.paidAmt>0){pm.payDuAmt=pm.paidAmt;changed=true;}
@@ -3826,7 +3976,7 @@ function lCS(c){return c==="EUR"?"€":c==="CNY"?"¥":"$";}
 if(!LEDGER[p.id])LEDGER[p.id]=[];
 var ld=LEDGER[p.id];
 var totalPurchase=0,totalSales=0,totalPaid=0,totalReceived=0,totalUnpaid=0;
-ld.forEach(function(o){totalPurchase+=o.purchaseAmt;totalSales+=o.salesAmt;o.payments.forEach(function(pm){totalPaid+=pm.paidAmt;totalReceived+=pm.receivedAmt;totalUnpaid+=(pm.unpaid||0);});});
+ld.forEach(function(o){if(!Array.isArray(o.payments))o.payments=[];totalPurchase+=(o.purchaseAmt||0);totalSales+=(o.salesAmt||0);o.payments.forEach(function(pm){totalPaid+=pm.paidAmt;totalReceived+=pm.receivedAmt;totalUnpaid+=(pm.unpaid||0);});});
 h+='<div class="pn" style="margin-bottom:14px;border-radius:0 0 10px 10px;margin-top:0">';
 h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:12px 16px;border-bottom:1px solid #F0ECE6">';
 var totalProfit=totalSales-totalPurchase,totalPctStr=totalSales>0?((totalProfit/totalSales)*100).toFixed(1)+"%":"—";

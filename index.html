@@ -402,7 +402,7 @@ return added;}
 var TXI=100;
 function mT(pid,type,d,amt,party,remark,note){return{id:TXI++,pid:pid,type:type,date:d,amount:amt,party:party||"",remark:remark||"",note:note||""};}
 var TX=[];
-var TX_VER=7;
+var TX_VER=8;
 function seedTx(){var s=[];
 // ═══ JAN EUR ═══
 s.push(mT(4,"OUT","2026-01-23",289335.16,"Beijing Youaiyi Innovation Technology","Transfer LSYAECG20251201014","水杯EUR付款"));
@@ -739,6 +739,15 @@ s.push(mT(99,"OUT","2026-07-23",45.52,"Vodafone GmbH","Kd.Nr. 001947731175","通
 s.push(mT(9,"IN","2026-07-23",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
 s.push(mT(9,"IN","2026-07-23",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
 s.push(mT(99,"OUT","2026-07-23",428.40,"Q10 Magic Power Med UG Co.KG","Rechnung Nr. 26-2026158","其他费用"));
+s.push(mT(99,"OUT","2026-07-27",4488.68,"Weibian","Salary 06.2026 Ms Bian","工资"));
+s.push(mT(9,"IN","2026-07-29",20652.54,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001","广汽回款"));
+s.push(mT(99,"OUT","2026-07-29",1582.10,"AOK Bayern - Die Gesundheitskasse","OB-87381812 BEITRAG 0726","社保"));
+s.push(mT(99,"OUT","2026-07-30",164.98,"Vodafone GmbH","Rechnungsnr 122439681562","通讯费"));
+s.push(mT(99,"OUT","2026-07-30",20.00,"CHINA CONSTRUCTION BANK","PAYMENT FOR CHG PER YR REF PTDEI02600897638","银行手续费"));
+s.push(mT(9,"IN","2026-07-31",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001 STI...44208","广汽回款"));
+s.push(mT(9,"IN","2026-07-31",19005.61,"Dreamcars Northspain Sl","PAGO FRA LSDGEMC20260428001 STI...44120","广汽回款"));
+s.push(mT(99,"IN","2026-07-31",819.47,"Bank of China","Interest Settlement","银行利息"));
+s.push(mT(99,"OUT","2026-07-31",216.14,"Bank of China","Interest Tax Settlement","利息税"));
 // ── USD 账户 DE42...9932 ──
 s.push(mT(98,"IN","2026-07-07",500000.00,"LUSHANG (GERMANY) GMBH","zhuankuan 自EUR账户购汇转入","内部转账-EUR账户转入"));
 s.push(mT(98,"OUT","2026-07-07",17.25,"","Charge","银行手续费"));
@@ -748,11 +757,21 @@ s.push(mT(98,"OUT","2026-07-10",30.62,"","Charge","银行手续费"));
 s.push(mT(0,"IN","2026-07-10",30616.05,"SMART LIFE TECHNOLOGY LIMITED","International Inward /ROC/TR1529990951","椰壳回款"));
 s.push(mT(98,"OUT","2026-07-16",24.25,"","Charge","银行手续费"));
 s.push(mT(3,"IN","2026-07-16",24251.15,"ONE SIX EIGHT SOLUTIONS PTY LTD","International Inward BUSIN 168","OTC回款"));
+s.push(mT(98,"OUT","2026-07-29",15.00,"","Local Clearing Charge PTDEC02601070349","银行手续费"));
+s.push(mT(98,"OUT","2026-07-29",14.00,"","Local Clearing Charge PTDEC02601071575","银行手续费"));
+s.push(mT(5,"IN","2026-07-29",24619.19,"U.I.E INTERNATIONAL LIMITED","International Inward PAYMENT FOR GOODS REFED 00101K0S090","水杯USD回款"));
+s.push(mT(5,"OUT","2026-07-29",239559.93,"Beijing Youaiyi Innovation Technology","Transfer LSYAECG202603162603","水杯USD付款"));
+s.push(mT(98,"OUT","2026-07-29",359.34,"","Charging Outward Remittance Comm. TT51485260002003","银行手续费"));
+s.push(mT(98,"OUT","2026-07-29",17.18,"","Charging Cable Fee TT51485260002003","银行手续费"));
+s.push(mT(98,"IN","2026-07-31",217.39,"Bank of China","Interest Settlement","银行利息"));
+s.push(mT(98,"OUT","2026-07-31",57.34,"Bank of China","Interest Tax Settlement","利息税"));
 // ── CNY 账户 DE68...6561 ──
 s.push(mT(97,"IN","2026-07-10",40000.00,"LUSHANG (GERMANY) GMBH","zhuankuan 自EUR账户购汇转入","内部转账-EUR账户转入"));
 s.push(mT(97,"OUT","2026-07-10",116.82,"","Charge","银行手续费"));
 s.push(mT(97,"OUT","2026-07-10",155.76,"","Charge","银行手续费"));
 s.push(mT(97,"OUT","2026-07-10",30721.57,"JIYUAN (HONG KONG) INTERNATIONAL","LSDGEMC20260316001","红旗0316人民币付款(JIYUAN)"));
+s.push(mT(97,"IN","2026-07-31",1.38,"Bank of China","Interest Settlement","银行利息"));
+s.push(mT(97,"OUT","2026-07-31",0.36,"Bank of China","Interest Tax Settlement","利息税"));
 return s;}
 TX=seedTx();
 var U="",pg="dashboard",expP={},pTab={},showF={},cFilt="ALL",editTxId=null,editCell=null,bankDrill=null;
@@ -844,10 +863,10 @@ seed.forEach(function(t){var k=_k(t);seen[k]=(seen[k]||0)+1;if(seen[k]>(have[k]|
 if(add.length){add.forEach(function(t){t.id=TXI++;TX.push(t);});return add.length;}
 }catch(e){}
 return 0;}
-// 哨兵: 6/30 EUR银行结息(种子v7新增) — 若缺失说明数据仍基于旧种子
+// 哨兵: 7/31 EUR银行结息€819.47(种子v8·7月流水补全) — 若缺失说明数据仍基于旧种子
 function _txSeedStale(ver){
 if((ver||0)<TX_VER)return true;
-for(var i=0;i<TX.length;i++){var t=TX[i];if(t&&t.date==="2026-06-30"&&t.type==="IN"&&Math.abs(t.amount-706.15)<0.005)return false;}
+for(var i=0;i<TX.length;i++){var t=TX[i];if(t&&t.date==="2026-07-31"&&t.type==="IN"&&Math.abs(t.amount-819.47)<0.005)return false;}
 return true;}
 function _collectState(){
   var pd={};P.forEach(function(p,i){pd[i]={pr:p.pr,pp:p.pp};});
@@ -870,12 +889,13 @@ function _applyState(s){
     // 云端数据基于旧种子(版本旧或缺哨兵条目): 合并新种子新增流水(如7月导入), 并标记回推云端
     if(_txSeedStale(s.txVer)){var _added=mergeSeedIntoTX();if(_added){window._txSeedMergedInApply=true;if(typeof toast==="function")setTimeout(function(){toast("已合并 "+_added+" 笔新导入流水(种子v"+TX_VER+")");},1500);}}}
     if(Array.isArray(s.exp)){EXP=s.exp;EXI=1;EXP.forEach(function(x){if(x.id>=EXI)EXI=x.id+1;});}
-    if(Array.isArray(s.rc)){RC=s.rc;RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});if(typeof migrateRC_daG==="function"&&migrateRC_daG())window._rcMigratedInApply=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())window._rcMigratedInApply=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())window._rcMigratedInApply=true;}
+    if(Array.isArray(s.rc)){RC=s.rc;RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});if(typeof migrateRC_daG==="function"&&migrateRC_daG())window._rcMigratedInApply=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())window._rcMigratedInApply=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())window._rcMigratedInApply=true;if(typeof migrateLedgerVat10==="function"&&migrateLedgerVat10())window._rcMigratedInApply=true;}
     if(s.ledger&&typeof s.ledger==="object"){var _lgStale=(s.ledgerVer||0)<LEDGER_VER;for(var lk in s.ledger){var _inc=s.ledger[lk];
 if(!Array.isArray(_inc))continue; // Firebase数组强转产生的null/对象洞: 一律不应用, 保住种子
 if(_lgStale&&_inc.length===0&&LEDGER[lk]&&LEDGER[lk].length)continue; // 旧版云端的空数组不清掉新种子
 LEDGER[lk]=_inc;}
 if(typeof sanitizeLedger==="function")sanitizeLedger(); // 修复缺失payments等结构损坏
+if(typeof migrateLedgerVat10==="function"&&migrateLedgerVat10())window._rcMigratedInApply=true; // 奶粉跨境默认VAT 7%
 if(_lgStale){var _lgAdded=(typeof mergeSeedIntoLedger==="function")?mergeSeedIntoLedger():0;
 if(_lgAdded&&typeof toast==="function")setTimeout(function(){toast("已合并 "+_lgAdded+" 个台账订单(种子v"+LEDGER_VER+")");},1800);
 window._txSeedMergedInApply=true;}}
@@ -1167,7 +1187,7 @@ function hrSub(e){if(!e||e.cat!=="人工成本")return"";var n=e.note||"";if(/�
 // ═══ Operating expense filter ═══
 var OPS_CATS=["办公费","差旅费","仓储/物流","税费/关税","法律/审计","银行手续费","IT/通讯","车辆费用","其他"];
 function isOpsCat(c){return OPS_CATS.indexOf(c)>=0;}
-var BANK_ACCTS={EUR:{iban:'DE95 5141 0700 9700 4712 69',name:'Bank of China EUR',bal:{'2025-12':9600.69,'2026-01':34693.12,'2026-02':432902.27,'2026-03':1964974.01,'2026-04':1562708.57,'2026-05':816310.79,'2026-06':1909715.27}},USD:{iban:'DE42 5141 0700 9700 8599 32',name:'Bank of China USD',bal:{'2025-12':163113.18,'2026-01':180172.29,'2026-02':11093.58,'2026-03':479183.63,'2026-04':266398.73,'2026-05':239559.32,'2026-06':239706.30}},CNY:{iban:'DE68 5141 0700 9700 9565 61',name:'Bank of China CNY',bal:{'2026-03':0,'2026-04':0,'2026-05':0,'2026-06':0}}};
+var BANK_ACCTS={EUR:{iban:'DE95 5141 0700 9700 4712 69',name:'Bank of China EUR',bal:{'2025-12':9600.69,'2026-01':34693.12,'2026-02':432902.27,'2026-03':1964974.01,'2026-04':1562708.57,'2026-05':816310.79,'2026-06':1909715.27,'2026-07':1817623.99}},USD:{iban:'DE42 5141 0700 9700 8599 32',name:'Bank of China USD',bal:{'2025-12':163113.18,'2026-01':180172.29,'2026-02':11093.58,'2026-03':479183.63,'2026-04':266398.73,'2026-05':239559.32,'2026-06':239706.30,'2026-07':78565.17}},CNY:{iban:'DE68 5141 0700 9700 9565 61',name:'Bank of China CNY',bal:{'2026-03':0,'2026-04':0,'2026-05':0,'2026-06':0,'2026-07':9006.87}}};
 // ═══ Expense Data ═══
 var EX_CATS=["办公费","差旅费","人工成本","仓储/物流","税费/关税","法律/审计","银行手续费","IT/通讯","车辆费用","内部转账","利息","其他"];
 var EXI=500;
@@ -1364,6 +1384,21 @@ function migrateLedgerPayDu(){
   }
   return changed;
 }
+// ═══ 采购后退税(VAT)支持: 采购含德国VAT、出口销售免税的业务 (如奶粉跨境) ═══
+// vatRate: 增值税率(%), 0=不适用; 退税额 = 含税采购额 × r/(100+r); 净采购 = 含税采购 − 退税
+function ordVatRate(o){var r=parseFloat(o&&o.vatRate);return(isNaN(r)||r<=0)?0:r;}
+function ordVatRefund(o){var r=ordVatRate(o);if(!r)return 0;return Math.round((o.purchaseAmt||0)*r/(100+r)*100)/100;}
+function ordNetPurchase(o){return Math.round(((o.purchaseAmt||0)-ordVatRefund(o))*100)/100;}
+// 奶粉跨境(项目10)历史订单默认7%(德国食品/婴幼儿奶粉减税率), 台账中可改
+function migrateLedgerVat10(){
+  var changed=false;
+  try{if(Array.isArray(LEDGER[10]))LEDGER[10].forEach(function(o){if(o&&(o.vatRate===undefined||o.vatRate===null||o.vatRate==="")){o.vatRate=7;changed=true;}});}catch(e){}
+  return changed;
+}
+// 付款/回款记录缺日期检查: 有金额但无日期 → 无法纳入回款付款计划
+function pmMissPayDate(pm){return((pm.payDuAmt||pm.paidAmt||0)>0)&&!(pm.payDuDate||pm.payDate);}
+function pmMissRecvDate(pm){return((pm.dueAmt||0)>0)&&!pm.dueDate;}
+function countLedgerUndated(pid){var n=0;(LEDGER[pid]||[]).forEach(function(o){if(!o||!Array.isArray(o.payments))return;o.payments.forEach(function(pm){if(pmMissPayDate(pm))n++;if(pmMissRecvDate(pm))n++;});});return n;}
 function getRCbyPid(pid){return RC.filter(function(r){return r.pid===pid;}).sort(function(a,b){return a.inv_date<b.inv_date?-1:a.inv_date>b.inv_date?1:0;});}
 function getRCsum(pid,type){var m=new Array(12).fill(0);RC.forEach(function(r){if(r.pid===pid&&r.type===type){var mo=parseInt((r.inv_date||r.pay_date||"").split("-")[1]||"0",10)-1;if(mo>=0&&mo<12)m[mo]+=r.gross;}});return m;}
 var ROLE="";
@@ -1373,7 +1408,7 @@ function login(n,role){U=n;ROLE=role||"admin";document.getElementById("LS").styl
 bNav();render();bMT();updateCloudBadge();
 if(!window._cloudStarted){window._cloudStarted=true;_cloudInitDone=false;cloudStart();}
 // 迁移延迟到云端首次数据到达后执行(或2秒超时), 避免把本地旧数据推回云端
-function runMigrations(){var _m=false;if(typeof migrateRC_daG==="function"&&migrateRC_daG())_m=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())_m=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())_m=true;if(_m){savDLocal();cloudPush();render();}}
+function runMigrations(){var _m=false;if(typeof migrateRC_daG==="function"&&migrateRC_daG())_m=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())_m=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())_m=true;if(typeof migrateLedgerVat10==="function"&&migrateLedgerVat10())_m=true;if(_m){savDLocal();cloudPush();render();}}
 if(USE_CLOUD){var _mTimer=setTimeout(function(){runMigrations();},2500);var _origInit=_cloudInitDone;var _mCheck=setInterval(function(){if(_cloudInitDone){clearInterval(_mCheck);clearTimeout(_mTimer);setTimeout(runMigrations,200);}},100);setTimeout(function(){clearInterval(_mCheck);},5000);}else{runMigrations();}
 if(typeof loadDD==="function")loadDD();if(typeof scheduleAutoSnapshot==="function")scheduleAutoSnapshot();checkBackupReminder();}
 function doLogout(){if(!confirm("确认登出？"))return;U="";pg="dashboard";try{if(USE_CLOUD&&rtdb){rtdb.ref("lushang/state").off();rtdb.ref(".info/connected").off();}}catch(e){}window._cloudStarted=false;document.getElementById("AS").style.display="none";document.getElementById("LS").style.display="flex";}
@@ -3975,14 +4010,18 @@ h+='</div></div>';
 function lCS(c){return c==="EUR"?"€":c==="CNY"?"¥":"$";}
 if(!LEDGER[p.id])LEDGER[p.id]=[];
 var ld=LEDGER[p.id];
-var totalPurchase=0,totalSales=0,totalPaid=0,totalReceived=0,totalUnpaid=0;
-ld.forEach(function(o){if(!Array.isArray(o.payments))o.payments=[];totalPurchase+=(o.purchaseAmt||0);totalSales+=(o.salesAmt||0);o.payments.forEach(function(pm){totalPaid+=pm.paidAmt;totalReceived+=pm.receivedAmt;totalUnpaid+=(pm.unpaid||0);});});
+var totalPurchase=0,totalSales=0,totalPaid=0,totalReceived=0,totalUnpaid=0,totalRefund=0;
+ld.forEach(function(o){if(!Array.isArray(o.payments))o.payments=[];totalPurchase+=(o.purchaseAmt||0);totalSales+=(o.salesAmt||0);totalRefund+=ordVatRefund(o);o.payments.forEach(function(pm){totalPaid+=pm.paidAmt;totalReceived+=pm.receivedAmt;totalUnpaid+=(pm.unpaid||0);});});
 h+='<div class="pn" style="margin-bottom:14px;border-radius:0 0 10px 10px;margin-top:0">';
-h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:12px 16px;border-bottom:1px solid #F0ECE6">';
-var totalProfit=totalSales-totalPurchase,totalPctStr=totalSales>0?((totalProfit/totalSales)*100).toFixed(1)+"%":"—";
-var kpis=[{l:"\u603b\u91c7\u8d2d\u989d",v:lCS(ld[0]?ld[0].cur:"USD")+FK(totalPurchase),c:"#DC2626"},{l:"\u603b\u9500\u552e\u989d",v:lCS(ld[0]?ld[0].cur:"USD")+FK(totalSales),c:"#059669"},{l:"\u6bdb\u5229\u6da6 ("+totalPctStr+")",v:lCS(ld[0]?ld[0].cur:"USD")+(totalProfit>=0?"+":"")+FK(totalProfit),c:totalProfit>=0?"#059669":"#DC2626"},{l:"\u5df2\u6536\u56de\u6b3e",v:lCS(ld[0]?ld[0].cur:"USD")+FK(totalReceived),c:"#3B82F6"},{l:"\u5f85\u56de\u6b3e",v:lCS(ld[0]?ld[0].cur:"USD")+FK(totalUnpaid),c:"#8B2332"}];
+// 采购后退税业务: 毛利 = 销售(出口免税) − 净采购(含税采购 − 可退VAT), 避免"采销倒挂"假象
+var totalProfit=totalSales-(totalPurchase-totalRefund),totalPctStr=totalSales>0?((totalProfit/totalSales)*100).toFixed(1)+"%":"—";
+var _kSym=lCS(ld[0]?ld[0].cur:"USD");
+var kpis=[{l:"\u603b\u91c7\u8d2d\u989d"+(totalRefund>0?"(\u542b\u7a0e)":""),v:_kSym+FK(totalPurchase),c:"#DC2626"}];
+if(totalRefund>0)kpis.push({l:"\u9884\u8ba1\u9000\u7a0e",v:_kSym+"+"+FK(totalRefund),c:"#7C3AED",t:"\u91c7\u8d2d\u542b\u5fb7\u56fdVAT\uff0c\u51fa\u53e3\u9500\u552e\u514d\u7a0e\uff0c\u8fdb\u9879\u7a0e\u53ef\u9000"});
+kpis.push({l:"\u603b\u9500\u552e\u989d"+(totalRefund>0?"(\u514d\u7a0e)":""),v:_kSym+FK(totalSales),c:"#059669"},{l:"\u6bdb\u5229\u6da6"+(totalRefund>0?"\u542b\u9000\u7a0e":"")+" ("+totalPctStr+")",v:_kSym+(totalProfit>=0?"+":"")+FK(totalProfit),c:totalProfit>=0?"#059669":"#DC2626"},{l:"\u5df2\u6536\u56de\u6b3e",v:_kSym+FK(totalReceived),c:"#3B82F6"},{l:"\u5f85\u56de\u6b3e",v:_kSym+FK(totalUnpaid),c:"#8B2332"});
+h+='<div style="display:grid;grid-template-columns:repeat('+kpis.length+',1fr);gap:8px;padding:12px 16px;border-bottom:1px solid #F0ECE6">';
 kpis.forEach(function(k){
-h+='<div style="text-align:center"><div style="font-size:8px;color:#8B7355">'+k.l+'</div><div class="m" style="font-size:14px;font-weight:700;color:'+k.c+'">'+k.v+'</div></div>';});h+='</div>';
+h+='<div style="text-align:center"'+(k.t?' title="'+k.t+'"':'')+'><div style="font-size:8px;color:#8B7355">'+k.l+'</div><div class="m" style="font-size:14px;font-weight:700;color:'+k.c+'">'+k.v+'</div></div>';});h+='</div>';
 h+='<div style="padding:8px 16px;border-bottom:1px solid #F0ECE6;display:flex;justify-content:flex-end"><button class="btn bg2" onclick="exportBizLedger('+p.id+')" style="font-size:9px;padding:4px 12px" title="\u5bfc\u51fa\u672c\u677f\u5757\u5168\u90e8\u8ba2\u5355\u53ca\u4ed8\u6b3e\u56de\u6b3e\u660e\u7ec6(xlsx)">\ud83d\udce5 \u5bfc\u51fa\u5168\u90e8\u8ba2\u5355Excel</button></div>';
 ld.forEach(function(o,oi){
 var isEO=ledgerEdit&&ledgerEdit.pid===p.id&&ledgerEdit.oi===oi&&ledgerEdit.pi===-1;
@@ -3998,12 +4037,15 @@ h+='<div><div style="font-size:8px;color:#8B7355">\u4f9b\u5e94\u5546</div><input
 h+='<div><div style="font-size:8px;color:#8B7355">\u67dc\u6570</div><input class="fi" type="number" id="leQty" value="'+o.qty+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u5e01\u79cd</div><select class="fi" id="leCur" style="font-size:10px"><option value="USD"'+(o.cur==="USD"?" selected":"")+'>USD $</option><option value="EUR"'+(o.cur==="EUR"?" selected":"")+'>EUR €</option><option value="CNY"'+(o.cur==="CNY"?" selected":"")+'>CNY ¥</option></select></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u8d26\u671f</div><input class="fi" type="number" id="leDays" value="'+o.days+'" style="font-size:10px"></div></div>';
-h+='<div style="display:grid;grid-template-columns:100px 100px 100px 90px 120px;gap:6px;margin-bottom:6px">';
-h+='<div><div style="font-size:8px;color:#8B7355">\u91c7\u8d2d\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="lePurchase" value="'+o.purchaseAmt+'" style="font-size:10px"></div>';
-h+='<div><div style="font-size:8px;color:#8B7355">\u9500\u552e\u91d1\u989d</div><input class="fi m" type="number" step="0.01" id="leSales" value="'+o.salesAmt+'" style="font-size:10px"></div>';
+var _evr=ordVatRate(o),_evStd=[0,7,19].indexOf(_evr)>=0;
+h+='<div style="display:grid;grid-template-columns:100px 110px 100px 100px 90px 120px;gap:6px;margin-bottom:6px">';
+h+='<div><div style="font-size:8px;color:#8B7355">\u91c7\u8d2d\u91d1\u989d'+(_evr>0?'(\u542b\u7a0e)':'')+'</div><input class="fi m" type="number" step="0.01" id="lePurchase" value="'+o.purchaseAmt+'" style="font-size:10px"></div>';
+h+='<div><div style="font-size:8px;color:#7C3AED" title="\u91c7\u8d2d\u540e\u9000\u7a0e\u4e1a\u52a1: \u91c7\u8d2d\u542b\u5fb7\u56fdVAT\u3001\u51fa\u53e3\u9500\u552e\u514d\u7a0e\uff0c\u9009\u62e9\u7a0e\u7387\u540e\u6bdb\u5229\u81ea\u52a8\u6309\u51c0\u91c7\u8d2d\u8ba1\u7b97">\u589e\u503c\u7a0e\u7387(\u91c7\u8d2d\u540e\u9000\u7a0e) \u24d8</div><select class="fi" id="leVat" style="font-size:10px"><option value="0"'+(_evr===0?" selected":"")+'>\u65e0 (\u4e0d\u9002\u7528)</option><option value="7"'+(_evr===7?" selected":"")+'>7% (\u98df\u54c1/\u5976\u7c89)</option><option value="19"'+(_evr===19?" selected":"")+'>19% (\u6807\u51c6)</option>'+(_evStd?'':'<option value="'+_evr+'" selected>'+_evr+'%</option>')+'</select></div>';
+h+='<div><div style="font-size:8px;color:#8B7355">\u9500\u552e\u91d1\u989d'+(_evr>0?'(\u51fa\u53e3\u514d\u7a0e)':'')+'</div><input class="fi m" type="number" step="0.01" id="leSales" value="'+o.salesAmt+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u4fdd\u8bc1\u91d1</div><input class="fi m" type="number" step="0.01" id="leDeposit" value="'+o.deposit+'" style="font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">\u4fdd\u8bc1\u91d1\u65e5\u671f</div><input class="fi" type="date" id="leDepositDate" value="'+o.depositDate+'" style="font-size:10px"></div>';
 h+='<div style="grid-column:span 2"><div style="font-size:8px;color:#8B7355">\u9500\u552e\u53d1\u7968\u53f7 <span style="color:#A8998E;font-weight:400">(\u591a\u5f20\u7528\u9017\u53f7\u5206\u9694)</span></div><input class="fi" id="leInvNo" value="'+esc(o.invoiceNo||"")+'" style="font-size:10px" placeholder="\u5982: INV-001, INV-002"></div></div>';
+if(_evr>0)h+='<div style="font-size:9px;color:#7C3AED;background:rgba(124,58,237,.06);border-radius:4px;padding:4px 8px;margin-bottom:6px">\ud83d\udcb6 \u91c7\u8d2d\u540e\u9000\u7a0e: \u53ef\u9000VAT \u2248 '+lCS(o.cur)+F(ordVatRefund(o))+' \uff5c \u51c0\u91c7\u8d2d '+lCS(o.cur)+F(ordNetPurchase(o))+' \uff5c \u6bdb\u5229(\u542b\u9000\u7a0e) '+lCS(o.cur)+F((o.salesAmt||0)-ordNetPurchase(o))+' \u00b7 \u9000\u7a0e\u5230\u8d26\u89c1\u8d22\u52a1\u6a21\u5757\u201c\u589e\u503c\u7a0e\u201d</div>';
 h+='<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn bs" onclick="saveLedgerOrder('+p.id+','+oi+')" style="font-size:10px;padding:4px 12px">\u4fdd\u5b58</button><button class="btn bg2" onclick="cancelLedgerEdit()" style="font-size:10px;padding:4px 10px">\u53d6\u6d88</button></div></div>';
 }else{
 h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-bottom:1px solid #F0ECE6">';
@@ -4013,10 +4055,12 @@ h+='<span style="font-size:9px;color:#6B7280">'+esc(o.contract)+'</span>';
 h+='<span style="font-size:10px;font-weight:500">'+esc(o.supplier)+'</span>';
 h+='<span class="tag" style="font-size:7px;background:'+(o.cur==="EUR"?"rgba(59,130,246,.1);color:#3B82F6":o.cur==="CNY"?"rgba(220,38,38,.1);color:#DC2626":"rgba(5,150,105,.1);color:#059669")+'">'+o.cur+'</span>';
 h+='<span style="font-size:10px;color:#8B7355">'+o.qty+'\u67dc</span>';
-h+='<span class="m" style="font-size:10px;color:#DC2626;font-weight:600">\u91c7\u8d2d '+lCS(o.cur)+(o.purchaseAmt?F(o.purchaseAmt):"\u2014")+'</span>';
-h+='<span class="m" style="font-size:10px;color:#059669;font-weight:600">\u9500\u552e '+lCS(o.cur)+(o.salesAmt?F(o.salesAmt):"\u2014")+'</span>';
-var oProfit=o.salesAmt-o.purchaseAmt,oPctStr=o.salesAmt>0?((oProfit/o.salesAmt)*100).toFixed(1)+"%":"\u2014";
-if(o.purchaseAmt&&o.salesAmt)h+='<span class="m" style="font-size:10px;font-weight:700;color:'+(oProfit>=0?"#059669":"#DC2626")+'">\u6bdb\u5229 '+lCS(o.cur)+(oProfit>=0?"+":"")+F(oProfit)+' ('+oPctStr+')</span>';
+var oRefund=ordVatRefund(o),oVatR=ordVatRate(o);
+h+='<span class="m" style="font-size:10px;color:#DC2626;font-weight:600"'+(oRefund>0?' title="\u542b\u5fb7\u56fdVAT '+oVatR+'%"':'')+'>\u91c7\u8d2d'+(oRefund>0?'(\u542b\u7a0e)':'')+' '+lCS(o.cur)+(o.purchaseAmt?F(o.purchaseAmt):"\u2014")+'</span>';
+if(oRefund>0)h+='<span class="m" style="font-size:9px;font-weight:700;color:#7C3AED;background:rgba(124,58,237,.08);padding:1px 6px;border-radius:3px" title="\u91c7\u8d2d\u540e\u9000\u7a0e: \u8fdb\u9879VAT '+oVatR+'% \u53ef\u9000\uff0c\u51c0\u91c7\u8d2d '+lCS(o.cur)+F(ordNetPurchase(o))+'">\u9000\u7a0e +'+lCS(o.cur)+F(oRefund)+' ('+oVatR+'%)</span>';
+h+='<span class="m" style="font-size:10px;color:#059669;font-weight:600">\u9500\u552e'+(oRefund>0?'(\u514d\u7a0e)':'')+' '+lCS(o.cur)+(o.salesAmt?F(o.salesAmt):"\u2014")+'</span>';
+var oProfit=o.salesAmt-(o.purchaseAmt-oRefund),oPctStr=o.salesAmt>0?((oProfit/o.salesAmt)*100).toFixed(1)+"%":"\u2014";
+if(o.purchaseAmt&&o.salesAmt)h+='<span class="m" style="font-size:10px;font-weight:700;color:'+(oProfit>=0?"#059669":"#DC2626")+'"'+(oRefund>0?' title="\u6bdb\u5229 = \u9500\u552e(\u514d\u7a0e) \u2212 \u51c0\u91c7\u8d2d(\u542b\u7a0e\u91c7\u8d2d\u2212\u53ef\u9000VAT)"':'')+'>\u6bdb\u5229'+(oRefund>0?'(\u542b\u9000\u7a0e)':'')+' '+lCS(o.cur)+(oProfit>=0?"+":"")+F(oProfit)+' ('+oPctStr+')</span>';
 var oTotalRcv=0,oTotalPaid=0;o.payments.forEach(function(pm){oTotalPaid+=pm.paidAmt;oTotalRcv+=pm.receivedAmt;});
 var oCashFlow=oTotalRcv-oTotalPaid;
 if(oTotalPaid||oTotalRcv)h+='<span class="m" style="font-size:9px;padding:1px 6px;border-radius:3px;background:'+(oCashFlow>=0?"rgba(5,150,105,.08)":"rgba(220,38,38,.08)")+';color:'+(oCashFlow>=0?"#059669":"#DC2626")+'">\u73b0\u91d1\u6d41 '+lCS(o.cur)+(oCashFlow>=0?"+":"")+FK(oCashFlow)+'</span>';
@@ -4053,12 +4097,12 @@ h+='<div style="display:flex;gap:6px;justify-content:flex-end"><button class="bt
 h+='<tr><td style="text-align:center;color:#8B7355;font-size:9px">'+esc(pm.seq)+'</td>';
 h+='<td style="font-size:10px;color:#8B7355;text-align:center">'+esc(pm.ratio)+'</td>';
 h+='<td style="font-size:9px;text-align:center"><span class="tag" style="font-size:7px;background:'+(((pm.cur||o.cur)==="EUR")?"rgba(59,130,246,.1);color:#3B82F6":((pm.cur||o.cur)==="CNY")?"rgba(220,38,38,.1);color:#DC2626":"rgba(5,150,105,.1);color:#059669")+'">'+((pm.cur||o.cur)||"USD")+'</span></td>';
-h+='<td class="m" style="font-size:9px;color:#8B7355">'+(pm.payDuDate||pm.payDate||"\u2014")+'</td>';
+h+='<td class="m" style="font-size:9px;color:#8B7355">'+(pm.payDuDate||pm.payDate||(pmMissPayDate(pm)?'<span style="color:#DC2626;font-weight:700;background:#FFF0F0;padding:1px 4px;border-radius:3px;cursor:pointer" title="\u6b64\u7b14\u91c7\u8d2d\u4ed8\u6b3e\u53ea\u6709\u91d1\u989d\u6ca1\u6709\u65e5\u671f\uff0c\u672a\u7eb3\u5165\u56de\u6b3e\u4ed8\u6b3e\u8ba1\u5212\uff0c\u70b9\u51fb\u7f16\u8f91\u8865\u5f55" onclick="editLedger('+p.id+','+oi+','+pi+')">\u26a0 \u7f3a\u65e5\u671f</span>':"\u2014"))+'</td>';
 h+='<td class="tr m" style="font-size:10px">'+(pm.payDuAmt?lCS(pm.cur||o.cur)+F(pm.payDuAmt):"\u2014")+'</td>';
-h+='<td class="m" style="font-size:9px;color:'+(pm.payDate?"#059669":"#A8998E")+'">'+(pm.payDate||"\u2014")+'</td>';
+h+='<td class="m" style="font-size:9px;color:'+(pm.payDate?"#059669":"#A8998E")+'">'+(pm.payDate||((pm.paidAmt||0)>0?'<span style="color:#C2410C;font-weight:600" title="\u5df2\u4ed8\u91d1\u989d\u5df2\u5f55\u4f46\u7f3a\u5b9e\u4ed8\u65e5\u671f">\u26a0 \u7f3a\u65e5\u671f</span>':"\u2014"))+'</td>';
 h+='<td class="tr m" style="font-size:10px;color:'+(pm.paidAmt?"#059669":"#A8998E")+'">'+(pm.paidAmt?lCS(pm.cur||o.cur)+F(pm.paidAmt):"\u2014")+'</td>';
 var _dueWarn=pm.dueDate&&!isRecvSettled(pm)&&isWithin10Days(pm.dueDate);
-h+='<td class="m" style="font-size:9px;'+(_dueWarn?'color:#DC2626;font-weight:700;background:#FFF0F0':'color:#8B7355')+'">'+(pm.dueDate||"\u2014")+(_dueWarn?' ⚠':'')+'</td>';
+h+='<td class="m" style="font-size:9px;'+(_dueWarn?'color:#DC2626;font-weight:700;background:#FFF0F0':'color:#8B7355')+'">'+(pm.dueDate||(pmMissRecvDate(pm)?'<span style="color:#DC2626;font-weight:700;background:#FFF0F0;padding:1px 4px;border-radius:3px;cursor:pointer" title="\u5e94\u56de\u91d1\u989d\u5df2\u5f55\u4f46\u7f3a\u5e94\u56de\u65e5\u671f\uff0c\u672a\u7eb3\u5165\u56de\u6b3e\u8ba1\u5212\uff0c\u70b9\u51fb\u7f16\u8f91\u8865\u5f55" onclick="editLedger('+p.id+','+oi+','+pi+')">\u26a0 \u7f3a\u65e5\u671f</span>':"\u2014"))+(_dueWarn?' ⚠':'')+'</td>';
 // ═══ 剩余回款倒计时 ═══
 var _cd='\u2014';
 if(pm.dueDate){
@@ -4115,8 +4159,10 @@ function renderLedgerPlan(pid,sym,label){
   h+='<div class="pn" style="margin-bottom:14px"><div class="ph" style="background:rgba(59,130,246,.04)"><span style="font-weight:700;color:#3B82F6">📅 '+label+'</span><span style="font-size:9px;color:#8B7355;margin-left:8px">数据自动来源于业务台账(只读) ｜ 修改请前往台账</span>';
   var warn10=items.filter(function(x){return x.type==="pr"&&x.status!=="已收"&&isWithin10Days(x.date);});
   if(warn10.length)h+='<span style="font-size:9px;color:#fff;background:#DC2626;padding:2px 6px;border-radius:4px;margin-left:8px;animation:pulse 1.5s infinite">⚠ '+warn10.length+'笔应回款10天内到期</span>';
+  var _und=countLedgerUndated(pid);
+  if(_und)h+='<span style="font-size:9px;color:#C2410C;background:#FFF4EC;border:1px solid #C2410C;padding:2px 6px;border-radius:4px;margin-left:8px" title="\u53f0\u8d26\u4e2d\u6709\u91d1\u989d\u4f46\u672a\u586b\u65e5\u671f\u7684\u4ed8\u6b3e/\u56de\u6b3e\u8bb0\u5f55\uff0c\u65e0\u6cd5\u7eb3\u5165\u8ba1\u5212\uff0c\u8bf7\u5230\u4e1a\u52a1\u53f0\u8d26\u8865\u5f55">⚠ '+_und+'笔有金额缺日期(未纳入)</span>';
   h+='</div>';
-  if(!items.length){h+='<div style="padding:20px;text-align:center;color:#A8998E;font-size:10px">台账暂无付款/回款日期数据，请在业务台账中录入</div></div>';return;}
+  if(!items.length){h+='<div style="padding:20px;text-align:center;color:#A8998E;font-size:10px">台账暂无付款/回款日期数据，请在业务台账中录入'+(_und?'<br><span style="color:#C2410C;font-weight:600">⚠ 检测到 '+_und+' 笔记录有金额但缺日期 — 请在业务台账中补录日期后自动纳入计划</span>':'')+'</div></div>';return;}
   // Group by month → week
   var months={};items.forEach(function(it){var mo=it.date?it.date.substring(0,7):"未知";if(!months[mo])months[mo]=[];months[mo].push(it);});
   h+='<div style="overflow-x:auto"><table><thead><tr><th style="width:38px">类型</th><th style="width:85px">应付/应回日</th><th style="width:55px">周</th><th style="width:80px">订单号</th><th class="tr" style="width:95px">计划金额</th><th class="tr" style="width:95px">已收/已付</th><th style="width:50px">状态</th><th>供应商/客户</th><th>比例</th></tr></thead><tbody>';
@@ -4170,7 +4216,7 @@ var ledgerAddOrder=null; // pid or null
 var ledgerAddPay=null; // {pid,oi} or null
 function addLedgerOrder(pid){
 if(!LEDGER[pid])LEDGER[pid]=[];
-LEDGER[pid].push({id:"NEW",contract:"",terms:"FOB",supplier:"",qty:0,cur:"USD",days:120,purchaseAmt:0,salesAmt:0,deposit:0,depositDate:"",invoiceNo:"",payments:[]});
+LEDGER[pid].push({id:"NEW",contract:"",terms:"FOB",supplier:"",qty:0,cur:"USD",days:120,vatRate:0,purchaseAmt:0,salesAmt:0,deposit:0,depositDate:"",invoiceNo:"",payments:[]});
 ledgerEdit={pid:pid,oi:LEDGER[pid].length-1,pi:-1};savD();render();}
 function addLedgerPay(pid,oi){
 var o=LEDGER[pid][oi];if(!o)return;
@@ -4189,7 +4235,8 @@ o.salesAmt=parseFloat(document.getElementById("leSales").value)||0;
 o.deposit=parseFloat(document.getElementById("leDeposit").value)||0;
 o.depositDate=document.getElementById("leDepositDate").value;
 o.invoiceNo=document.getElementById("leInvNo").value;
-ledgerEdit=null;savD();toast("订单已保存");render();}
+var _vEl=document.getElementById("leVat");o.vatRate=_vEl?(parseFloat(_vEl.value)||0):(o.vatRate||0);
+ledgerEdit=null;savD();toast(ordVatRate(o)>0?"订单已保存 · 已按采购后退税("+ordVatRate(o)+"%)计算毛利":"订单已保存");render();}
 function saveLedgerPay(pid,oi,pi){
 var pm=LEDGER[pid][oi].payments[pi];if(!pm)return;
 pm.ratio=document.getElementById("lpRatio").value;pm.cur=document.getElementById("lpCur").value;
@@ -4200,7 +4247,9 @@ pm.dueAmt=parseFloat(document.getElementById("lpDueAmt").value)||0;pm.receivedAm
 var manualUnpaid=document.getElementById("lpUnpaid").value;
 pm.unpaid=(manualUnpaid!=="")?parseFloat(manualUnpaid)||0:Math.round(((pm.dueAmt||0)-pm.receivedAmt)*100)/100;
 pm.note=document.getElementById("lpNote").value;
-ledgerEdit=null;savD();toast("付款记录已保存");render();}
+ledgerEdit=null;savD();
+if(pmMissPayDate(pm)||pmMissRecvDate(pm))toast("⚠ 已保存，但有金额未填日期 — 该笔未纳入回款付款计划，请补录日期");else toast("付款记录已保存");
+render();}
 function delLedgerOrder(pid,oi){if(!confirm("第1步确认：删除订单 "+LEDGER[pid][oi].id+" 及所有付款记录？"))return;if(!confirm("第2步确认：删除后不可恢复，是否继续？"))return;LEDGER[pid].splice(oi,1);savD();toast("订单已删除");render();}
 function delLedgerPay(pid,oi,pi){if(!confirm("第1步确认：删除此笔付款记录？"))return;if(!confirm("第2步确认：删除后不可恢复，是否继续？"))return;LEDGER[pid][oi].payments.splice(pi,1);savD();toast("付款记录已删除");render();}
 
@@ -4267,21 +4316,27 @@ push(["\u5bfc\u51fa\u65e5\u671f "+new Date().toISOString().slice(0,10)+"   \u517
 push([],"blank");
 var kpiRecvCell=null,kpiUnCell=null;
 if(withKpi){
-var tP=0,tS=0,tR=0,tU=0;
-orders.forEach(function(o){tP+=o.purchaseAmt||0;tS+=o.salesAmt||0;o.payments.forEach(function(pm){tR+=pm.receivedAmt||0;tU+=pm.unpaid||0;});});
+var tP=0,tS=0,tR=0,tU=0,tVR=0;
+orders.forEach(function(o){tP+=o.purchaseAmt||0;tS+=o.salesAmt||0;tVR+=ordVatRefund(o);o.payments.forEach(function(pm){tR+=pm.receivedAmt||0;tU+=pm.unpaid||0;});});
 var kr=rows.length;
 kpiRecvCell=_xm(tR);kpiUnCell=_xm(tU);
+if(tVR>0){
+push(["\u603b\u91c7\u8d2d\u989d(\u542b\u7a0e)","","\u9884\u8ba1\u9000\u7a0e","","\u603b\u9500\u552e\u989d(\u514d\u7a0e)","","\u6bdb\u5229\u6da6(\u542b\u9000\u7a0e)","","\u5df2\u6536\u56de\u6b3e","","\u5f85\u56de\u6b3e","","",""],"kpihead");
+push([_xm(tP),"",_xm(tVR),"",_xm(tS),"",_xm(tS-tP+tVR),"",kpiRecvCell,"",kpiUnCell,"","",""],"kpival");
+for(var kc=0;kc<12;kc+=2){merges.push({s:{r:kr,c:kc},e:{r:kr,c:kc+1}});merges.push({s:{r:kr+1,c:kc},e:{r:kr+1,c:kc+1}});}
+}else{
 push(["\u603b\u91c7\u8d2d\u989d","","\u603b\u9500\u552e\u989d","","\u6bdb\u5229\u6da6","","\u5df2\u6536\u56de\u6b3e","","\u5f85\u56de\u6b3e","","","","",""],"kpihead");
 push([_xm(tP),"",_xm(tS),"",_xm(tS-tP),"",kpiRecvCell,"",kpiUnCell,"","","","",""],"kpival");
-for(var kc=0;kc<10;kc+=2){merges.push({s:{r:kr,c:kc},e:{r:kr,c:kc+1}});merges.push({s:{r:kr+1,c:kc},e:{r:kr+1,c:kc+1}});}
+for(var kc=0;kc<10;kc+=2){merges.push({s:{r:kr,c:kc},e:{r:kr,c:kc+1}});merges.push({s:{r:kr+1,c:kc},e:{r:kr+1,c:kc+1}});}}
 push([],"blank");}
 var PH=["#","\u6bd4\u4f8b","\u5e01\u79cd","\u5e94\u4ed8\u65e5\u671f","\u5e94\u4ed8\u91d1\u989d","\u5b9e\u4ed8\u65e5\u671f","\u5b9e\u4ed8\u91d1\u989d","\u5e94\u56de\u65e5\u671f","\u5269\u4f59\u5929\u6570/\u72b6\u6001","\u5e94\u56de\u91d1\u989d","\u5b9e\u56de\u65e5\u671f","\u5df2\u56de\u91d1\u989d","\u672a\u56de\u91d1\u989d","\u5907\u6ce8"];
 var subRows=[];
 orders.forEach(function(o){
 var cs=o.cur==="EUR"?"\u20ac":o.cur==="CNY"?"\u00a5":"$";
-var profit=(o.salesAmt||0)-(o.purchaseAmt||0);
+var _bvr=ordVatRefund(o),_bvrt=ordVatRate(o);
+var profit=(o.salesAmt||0)-(o.purchaseAmt||0)+_bvr;
 var pct=o.salesAmt>0?((profit/o.salesAmt)*100).toFixed(1)+"%":"\u2014";
-var banner="\u3010"+(o.id||"\u2014")+"\u3011  \u5408\u540c "+(o.contract||"\u2014")+"  \uff5c  "+(o.supplier||"\u2014")+"  \uff5c  "+(o.cur||"")+"  "+(o.qty||0)+"\u67dc  \u8d26\u671f"+(o.days||0)+"\u5929  \uff5c  \u91c7\u8d2d "+cs+F(o.purchaseAmt||0)+"   \u9500\u552e "+cs+F(o.salesAmt||0)+"   \u6bdb\u5229 "+cs+(profit>=0?"+":"")+F(profit)+" ("+pct+")"+(o.deposit?"  \uff5c  \u4fdd\u8bc1\u91d1 "+cs+F(o.deposit)+(o.depositDate?" ("+o.depositDate+")":""):"")+(o.invoiceNo?"  \uff5c  \u53d1\u7968 "+o.invoiceNo:"");
+var banner="\u3010"+(o.id||"\u2014")+"\u3011  \u5408\u540c "+(o.contract||"\u2014")+"  \uff5c  "+(o.supplier||"\u2014")+"  \uff5c  "+(o.cur||"")+"  "+(o.qty||0)+"\u67dc  \u8d26\u671f"+(o.days||0)+"\u5929  \uff5c  \u91c7\u8d2d"+(_bvr>0?"(\u542b\u7a0e)":"")+" "+cs+F(o.purchaseAmt||0)+(_bvr>0?"   \u9000\u7a0e("+_bvrt+"%) +"+cs+F(_bvr):"")+"   \u9500\u552e"+(_bvr>0?"(\u514d\u7a0e)":"")+" "+cs+F(o.salesAmt||0)+"   \u6bdb\u5229"+(_bvr>0?"(\u542b\u9000\u7a0e)":"")+" "+cs+(profit>=0?"+":"")+F(profit)+" ("+pct+")"+(o.deposit?"  \uff5c  \u4fdd\u8bc1\u91d1 "+cs+F(o.deposit)+(o.depositDate?" ("+o.depositDate+")":""):"")+(o.invoiceNo?"  \uff5c  \u53d1\u7968 "+o.invoiceNo:"");
 var r0=rows.length;
 push([banner],"ohead");merges.push({s:{r:r0,c:0},e:{r:r0,c:COLS-1}});
 push(PH.slice(),"phead");

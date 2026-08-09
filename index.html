@@ -401,6 +401,7 @@ return added;}
 
 var TXI=100;
 function mT(pid,type,d,amt,party,remark,note){return{id:TXI++,pid:pid,type:type,date:d,amount:amt,party:party||"",remark:remark||"",note:note||""};}
+function _xc(t,c){t.cur=c;return t;} // 跨币种流水: 标记实际入账账户币种
 var TX=[];
 var TX_VER=8;
 function seedTx(){var s=[];
@@ -475,7 +476,7 @@ s.push(mT(0,"OUT","2026-04-24",65232.00,"CHARLES FIBRES PRIVATE LIMITED","Transf
 // ═══ MAY EUR ═══
 s.push(mT(4,"IN","2026-05-06",192735.00,"U.I.E INTERNATIONAL LIMITED","Local Clearing Inward PAYMENT FOR GOODS","水杯EUR回款"));
 s.push(mT(9,"OUT","2026-05-07",802200.00,"GAC Motor Europe B.V.","Local Clearing Outward GC-20260429-0087","广汽采购付款续"));
-s.push(mT(99,"IN","2026-05-08",76205.30,"ONE SIX EIGHT SOLUTIONS PTY LTD","International Inward USD90108.20@1.182440 (欧元到账EUR账户) LSDE168S26-001","OTC回款(欧元到账)"));
+s.push(_xc(mT(99,"IN","2026-05-08",76205.30,"ONE SIX EIGHT SOLUTIONS PTY LTD","International Inward USD90108.20@1.182440 (欧元到账EUR账户) LSDE168S26-001","OTC回款(欧元到账)"),"EUR"));
 s.push(mT(1,"IN","2026-05-12",53733.32,"SMART LIFE TECHNOLOGY LIMITED","Local Clearing Inward GPK","泥炭回款 GPK"));
 s.push(mT(9,"OUT","2026-05-15",48760.00,"JIYUAN (HONG KONG) INTERNATIONAL TRADING","Local Clearing Outward LSDGEMC20260428001","广汽付款"));
 s.push(mT(9,"IN","2026-05-21",39658.15,"DREAMCARS NORTHSPAIN SL","Local Clearing Inward PAGO FRA LSDGEMC20260428001-1","广汽回款续"));
@@ -889,7 +890,7 @@ function _applyState(s){
     // 云端数据基于旧种子(版本旧或缺哨兵条目): 合并新种子新增流水(如7月导入), 并标记回推云端
     if(_txSeedStale(s.txVer)){var _added=mergeSeedIntoTX();if(_added){window._txSeedMergedInApply=true;if(typeof toast==="function")setTimeout(function(){toast("已合并 "+_added+" 笔新导入流水(种子v"+TX_VER+")");},1500);}}}
     if(Array.isArray(s.exp)){EXP=s.exp;EXI=1;EXP.forEach(function(x){if(x.id>=EXI)EXI=x.id+1;});}
-    if(Array.isArray(s.rc)){RC=s.rc;RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});if(typeof migrateRC_daG==="function"&&migrateRC_daG())window._rcMigratedInApply=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())window._rcMigratedInApply=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())window._rcMigratedInApply=true;if(typeof migrateLedgerVat10==="function"&&migrateLedgerVat10())window._rcMigratedInApply=true;}
+    if(Array.isArray(s.rc)){RC=s.rc;RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});if(typeof migrateRC_daG==="function"&&migrateRC_daG())window._rcMigratedInApply=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())window._rcMigratedInApply=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())window._rcMigratedInApply=true;if(typeof migrateTxCrossCur==="function"&&migrateTxCrossCur())window._rcMigratedInApply=true;if(typeof migrateLedgerVat10==="function"&&migrateLedgerVat10())window._rcMigratedInApply=true;}
     if(s.ledger&&typeof s.ledger==="object"){var _lgStale=(s.ledgerVer||0)<LEDGER_VER;for(var lk in s.ledger){var _inc=s.ledger[lk];
 if(!Array.isArray(_inc))continue; // Firebase数组强转产生的null/对象洞: 一律不应用, 保住种子
 if(_lgStale&&_inc.length===0&&LEDGER[lk]&&LEDGER[lk].length)continue; // 旧版云端的空数组不清掉新种子
@@ -1395,6 +1396,17 @@ function migrateLedgerVat10(){
   try{if(Array.isArray(LEDGER[10]))LEDGER[10].forEach(function(o){if(o&&(o.vatRate===undefined||o.vatRate===null||o.vatRate==="")){o.vatRate=7;changed=true;}});}catch(e){}
   return changed;
 }
+// 跨币种流水修复: 2026-05-08 168Solutions付USD90,108.20，银行折算后€76,205.30直接入EUR账户。
+// 无论该笔归属"费用-EUR"还是被重分类到OTC业务(USD)，实际到账账户始终是EUR，故固定 cur=EUR。
+function migrateTxCrossCur(){
+  var changed=false;
+  try{TX.forEach(function(t){
+    if(!t||t.date!=="2026-05-08"||t.type!=="IN")return;
+    if(Math.abs((t.amount||0)-76205.30)>0.01)return;
+    if(t.cur!=="EUR"){t.cur="EUR";changed=true;}
+  });}catch(e){}
+  return changed;
+}
 // 付款/回款记录缺日期检查: 有金额但无日期 → 无法纳入回款付款计划
 function pmMissPayDate(pm){return((pm.payDuAmt||pm.paidAmt||0)>0)&&!(pm.payDuDate||pm.payDate);}
 function pmMissRecvDate(pm){return((pm.dueAmt||0)>0)&&!pm.dueDate;}
@@ -1408,7 +1420,7 @@ function login(n,role){U=n;ROLE=role||"admin";document.getElementById("LS").styl
 bNav();render();bMT();updateCloudBadge();
 if(!window._cloudStarted){window._cloudStarted=true;_cloudInitDone=false;cloudStart();}
 // 迁移延迟到云端首次数据到达后执行(或2秒超时), 避免把本地旧数据推回云端
-function runMigrations(){var _m=false;if(typeof migrateRC_daG==="function"&&migrateRC_daG())_m=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())_m=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())_m=true;if(typeof migrateLedgerVat10==="function"&&migrateLedgerVat10())_m=true;if(_m){savDLocal();cloudPush();render();}}
+function runMigrations(){var _m=false;if(typeof migrateRC_daG==="function"&&migrateRC_daG())_m=true;if(typeof migrateRC_202506==="function"&&migrateRC_202506())_m=true;if(typeof migrateLedgerPayDu==="function"&&migrateLedgerPayDu())_m=true;if(typeof migrateLedgerVat10==="function"&&migrateLedgerVat10())_m=true;if(typeof migrateTxCrossCur==="function"&&migrateTxCrossCur())_m=true;if(_m){savDLocal();cloudPush();render();}}
 if(USE_CLOUD){var _mTimer=setTimeout(function(){runMigrations();},2500);var _origInit=_cloudInitDone;var _mCheck=setInterval(function(){if(_cloudInitDone){clearInterval(_mCheck);clearTimeout(_mTimer);setTimeout(runMigrations,200);}},100);setTimeout(function(){clearInterval(_mCheck);},5000);}else{runMigrations();}
 if(typeof loadDD==="function")loadDD();if(typeof scheduleAutoSnapshot==="function")scheduleAutoSnapshot();checkBackupReminder();}
 function doLogout(){if(!confirm("确认登出？"))return;U="";pg="dashboard";try{if(USE_CLOUD&&rtdb){rtdb.ref("lushang/state").off();rtdb.ref(".info/connected").off();}}catch(e){}window._cloudStarted=false;document.getElementById("AS").style.display="none";document.getElementById("LS").style.display="flex";}
@@ -1504,7 +1516,9 @@ remark=document.getElementById("eR").value,note=readNote("eN");
 var pidEl=document.getElementById("ePid");var newPid=pidEl?parseInt(pidEl.value):t.pid;
 if(!d||!amt||amt<=0){toast("日期和金额不能为空");return;}
 t.date=d;t.amount=amt;t.type=type;t.party=party;t.remark=remark;t.note=note;t.pid=newPid;
-editTxId=null;savD();toast("已保存修改");render();}
+var cEl=document.getElementById("eCur");var ac=cEl?cEl.value:"";
+if(ac&&ac!==projCur(newPid))t.cur=ac;else delete t.cur;
+editTxId=null;savD();toast(txCurMismatch(t)?"已保存 · 跨币种: 计入 "+txCur(t)+" 账户":"已保存修改");render();}
 
 
 // ═══ DASHBOARD ═══
@@ -2053,6 +2067,20 @@ function fmtDE(n){return typeof n==="number"?n.toLocaleString("de-DE",{minimumFr
 function kBal(k){var rc=DATEV_REC.filter(function(r){return r.k===k});return rc.reduce(function(a,r){return a+(r.s||0)-(r.h||0)},0)}
 
 // ═══ BANK ACCOUNTS (derived from TX + EXP) ═══
+// ═══ 跨币种流水支持 ═══
+// 一笔流水"归属业务"与"实际入账银行账户"可以不同币种(如客户付USD、银行折算后入EUR账户)。
+// t.cur 为可选的入账账户币种覆盖; 未设置时沿用归属业务/费用池的币种。
+function projCur(pid){
+  var pr=P.filter(function(p){return p.id===pid;})[0];
+  if(pr&&pr.cur)return pr.cur;
+  return pid===98?"USD":pid===97?"CNY":"EUR";
+}
+function txCur(t){
+  var c=t&&t.cur?String(t.cur).toUpperCase():"";
+  if(c==="EUR"||c==="USD"||c==="CNY")return c;
+  return projCur(t?t.pid:0);
+}
+function txCurMismatch(t){return !!(t&&t.cur)&&txCur(t)!==projCur(t.pid);}
 function bankMonth(cur,moNum,yr){
   yr=yr||"2026";
   var curProjs=P.filter(function(p){return p.cur===cur;});
@@ -2063,10 +2091,11 @@ function bankMonth(cur,moNum,yr){
   var xferIn=0,xferOut=0,xferInC=0,xferOutC=0;
   TX.forEach(function(t){
     if(gM(t.date)!==moNum||t.date.indexOf(yr)!==0)return;
-    if(pids.indexOf(t.pid)>-1){
+    if(txCur(t)!==cur)return; // 按实际入账账户币种归集(支持跨币种流水)
+    if(t.pid!==97&&t.pid!==98&&t.pid!==99){
       if(t.type==="IN"){bizIn+=t.amount;bizInC++;}
       else{bizOut+=t.amount;bizOutC++;}
-    }else if(t.pid===feePid){
+    }else{
       var isXferIn=t.note==="采购货款"||t.note==="增值税退税"||t.note==="银行利息"||t.note==="内部换汇";
       if(t.type==="IN"){
         if(isXferIn){xferIn+=t.amount;xferInC++;}
@@ -2091,11 +2120,13 @@ function gatherBankRows(cur,m){
   var rows=[];
   TX.forEach(function(t){
     if(!m||gM(t.date)===m){
-      if(pids.indexOf(t.pid)>-1){
+      if(txCur(t)!==cur)return; // 按实际入账账户币种(支持跨币种流水)
+      var xc=txCurMismatch(t)?" [跨币种·业务币种"+projCur(t.pid)+"]":"";
+      if(t.pid!==97&&t.pid!==98&&t.pid!==99){
         var pn=P.filter(function(p){return p.id===t.pid;})[0];
-        rows.push({日期:t.date,类型:t.type==="IN"?"进账":"出账",分类:"业务",供应商客户:t.party||"",金额:t.amount,备注:t.note||"",银行附言:t.remark||"",项目:pn?pn.name:""});
-      }else if(t.pid===feePid){
-        rows.push({日期:t.date,类型:t.type==="IN"?"进账":"出账",分类:"费用",供应商客户:t.party||"",金额:t.amount,备注:t.note||"",银行附言:t.remark||"",项目:"费用-"+cur});
+        rows.push({日期:t.date,类型:t.type==="IN"?"进账":"出账",分类:"业务",供应商客户:t.party||"",金额:t.amount,备注:(t.note||"")+xc,银行附言:t.remark||"",项目:pn?pn.name:""});
+      }else{
+        rows.push({日期:t.date,类型:t.type==="IN"?"进账":"出账",分类:"费用",供应商客户:t.party||"",金额:t.amount,备注:(t.note||"")+xc,银行附言:t.remark||"",项目:"费用-"+cur});
       }
     }
   });
@@ -2137,7 +2168,7 @@ function calcBankBal(cur){
   // 展示月份范围: 至少到6月, 且自动覆盖当前月份及最后一笔流水所在月份
   var pids=P.filter(function(p){return p.cur===cur;}).map(function(p){return p.id;});
   var feePid=feePidOf(cur);
-  var maxTxM=0;TX.forEach(function(t){if(String(t.date).indexOf('2026')!==0)return;if(pids.indexOf(t.pid)>-1||t.pid===feePid){var mo=parseInt(String(t.date).slice(5,7),10);if(mo>maxTxM)maxTxM=mo;}});
+  var maxTxM=0;TX.forEach(function(t){if(String(t.date).indexOf('2026')!==0)return;if(txCur(t)===cur){var mo=parseInt(String(t.date).slice(5,7),10);if(mo>maxTxM)maxTxM=mo;}});
   var _now=new Date();var nowM=_now.getFullYear()>2026?12:(_now.getFullYear()===2026?_now.getMonth()+1:6);
   var showTo=Math.min(12,Math.max(6,maxTxM,nowM));
   var rows=[],bal=opening;
@@ -3078,6 +3109,9 @@ h+='<div><div class="tx-label">类型</div><select class="fi" id="intTxType" sty
 h+='<div><div class="tx-label">银行入账日期</div><input class="fi" type="date" id="intTxDate" style="width:100%"></div>';
 h+='<div><div class="tx-label">供应商/客户名称</div><input class="fi" id="intTxParty" placeholder="如: SMART LIFE TECHNOLOGY..." style="width:100%"></div>';
 h+='<div><div class="tx-label">金额</div><input class="fi m" type="number" step="0.01" id="intTxAmt" placeholder="0.00" style="width:100%"></div></div>';
+h+='<div style="display:grid;grid-template-columns:200px 1fr;gap:8px;margin-top:6px;align-items:end">';
+h+='<div><div class="tx-label" title="客户付一种货币、银行折算后入另一币种账户时，选择款项实际到账的银行账户">入账银行账户 ⓘ</div><select class="fi" id="intTxCur" style="width:100%"><option value="">跟随业务币种(默认)</option><option value="EUR">EUR 账户 (跨币种)</option><option value="USD">USD 账户 (跨币种)</option><option value="CNY">CNY 账户 (跨币种)</option></select></div>';
+h+='<div style="font-size:9px;color:#8B7355;padding-bottom:6px">仅当款项实际到账账户与业务币种不同时才需要选择，否则保持默认。金额请按到账账户的实际金额填写。</div></div>';
 h+='<div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-top:6px;align-items:end">';
 h+='<div><div class="tx-label">银行附言 Verwendungszweck</div><input class="fi" id="intTxRemark" placeholder="银行流水原始摘要..." style="width:100%"></div>';
 h+='<div><div class="tx-label">内部备注</div>'+noteCombo("intTxNote","",false)+'</div>';
@@ -3095,7 +3129,7 @@ if(!allTx.length){h+='<div style="text-align:center;color:#A8998E;padding:30px;f
 var bM={};allTx.forEach(function(t){var m=gM(t.date);if(!bM[m])bM[m]=[];bM[m].push(t);});
 Object.keys(bM).sort(function(a,b){return b-a}).forEach(function(m){var mt=bM[m],mI=0,mO=0;mt.forEach(function(t){if(t.type==="IN")mI+=t.amount;else mO+=t.amount;});
 h+='<div style="padding:10px 16px;border-bottom:1px solid #F0ECE6"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:#2D1F1A">'+m+'月 <span style="font-size:9px;font-weight:400;color:#8B7355">('+mt.length+'笔)</span></div></div>';
-mt.forEach(function(t){var isIn=t.type==="IN",pn=P.filter(function(p){return p.id===t.pid;})[0];if(!pn)pn={id:t.pid,name:t.pid===99?'费用-EUR':t.pid===98?'费用-USD':t.pid===97?'费用-CNY':'?',cur:t.pid===99?'EUR':t.pid===98?'USD':t.pid===97?'CNY':'EUR'};var sym=pn?cS(pn.cur):"€";
+mt.forEach(function(t){var isIn=t.type==="IN",pn=P.filter(function(p){return p.id===t.pid;})[0];if(!pn)pn={id:t.pid,name:t.pid===99?'费用-EUR':t.pid===98?'费用-USD':t.pid===97?'费用-CNY':'?',cur:t.pid===99?'EUR':t.pid===98?'USD':t.pid===97?'CNY':'EUR'};var sym=cS(txCur(t));
 if(editTxId===t.id){
 h+='<div style="background:#FFFBF0;border:1px solid #E8DCC8;border-radius:6px;padding:10px;margin:4px 0">';
 h+='<div style="display:grid;grid-template-columns:140px 80px 80px 1fr 100px;gap:6px;margin-bottom:6px">';
@@ -3111,12 +3145,16 @@ h+='<div><div style="font-size:8px;color:#8B7355">金额</div><input class="fi m
 h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">';
 h+='<div><div style="font-size:8px;color:#8B7355">银行附言</div><input class="fi" id="eR" value="'+(t.remark||"")+'" style="width:100%;font-size:10px"></div>';
 h+='<div><div style="font-size:8px;color:#8B7355">内部备注</div>'+noteCombo("eN",t.note||"",true)+'</div></div>';
+h+='<div style="display:grid;grid-template-columns:200px 1fr;gap:6px;margin-bottom:6px;align-items:end">';
+h+='<div><div style="font-size:8px;color:#7C3AED" title="款项实际到账的银行账户。改归属业务时若到账账户不变，请在此固定，避免余额串账">入账银行账户 ⓘ</div><select class="fi" id="eCur" style="width:100%;font-size:10px"><option value=""'+(!t.cur?" selected":"")+'>跟随业务币种 ('+projCur(t.pid)+')</option><option value="EUR"'+(t.cur==="EUR"?" selected":"")+'>EUR 账户</option><option value="USD"'+(t.cur==="USD"?" selected":"")+'>USD 账户</option><option value="CNY"'+(t.cur==="CNY"?" selected":"")+'>CNY 账户</option></select></div>';
+h+='<div style="font-size:8px;color:#8B7355;padding-bottom:6px">'+(txCurMismatch(t)?'⚠ 该笔为跨币种流水: 归属业务 '+projCur(t.pid)+'，实际入账 '+txCur(t)+' 账户':'仅当到账账户与业务币种不同时才需要设置')+'</div></div>';
 h+='<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn bs" onclick="saveEditTx('+t.id+')" style="font-size:10px;padding:4px 12px">保存</button><button class="btn bg2" onclick="cancelEdit()" style="font-size:10px;padding:4px 10px">取消</button></div></div>';
 }else{
 h+='<div class="tx-row" style="flex-wrap:wrap">';
 h+='<span class="m" style="width:82px;color:#8B7355;flex-shrink:0">'+t.date+'</span>';
 h+='<span class="tag" style="background:'+(isIn?"rgba(5,150,105,.1)":"rgba(220,38,38,.1)")+';color:'+(isIn?"#059669":"#DC2626")+';flex-shrink:0">'+(isIn?"进账":"出账")+'</span>';
 h+='<span class="tag tag-'+(pn?pn.cur.toLowerCase():"eur")+'" style="flex-shrink:0;font-size:7px">'+(pn?pn.name.substring(0,6):"?")+'</span>';
+if(txCurMismatch(t))h+='<span class="tag" style="flex-shrink:0;font-size:7px;background:rgba(124,58,237,.1);color:#7C3AED;font-weight:700" title="跨币种流水: 归属业务为'+projCur(t.pid)+'，款项实际入账'+txCur(t)+'账户，余额计入'+txCur(t)+'">⇄ 入账'+txCur(t)+'</span>';
 h+='<span style="min-width:100px;max-width:160px;color:#2D1F1A;font-weight:500;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px">'+esc(t.party||"—")+'</span>';
 h+='<span style="flex:1;color:#6B7280;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px">'+esc(t.note||"—")+'</span>';
 h+='<span class="m" style="font-weight:600;color:'+(isIn?"#059669":"#DC2626")+';flex-shrink:0">'+(isIn?"+":"-")+sym+F(t.amount)+'</span>';
@@ -3137,9 +3175,12 @@ var d=document.getElementById("intTxDate").value,type=document.getElementById("i
 var amt=parseFloat(document.getElementById("intTxAmt").value);
 var party=document.getElementById("intTxParty").value,remark=document.getElementById("intTxRemark").value,note=readNote("intTxNote");
 if(!d){toast("请填写日期");return;}if(!amt||amt<=0){toast("请填写有效金额");return;}
-TX.push({id:TXI++,pid:parseInt(pid),type:type,date:d,amount:amt,party:party||"",remark:remark||"",note:note||""});
+var curEl=document.getElementById("intTxCur");var acctCur=curEl?curEl.value:"";
+var _nt={id:TXI++,pid:parseInt(pid),type:type,date:d,amount:amt,party:party||"",remark:remark||"",note:note||""};
+if(acctCur&&acctCur!==projCur(parseInt(pid)))_nt.cur=acctCur; // 仅跨币种时记录入账账户
+TX.push(_nt);
 savD();var pn=P.filter(function(p){return p.id===pid;})[0];
-toast("已录入 "+(type==="IN"?"进账":"出账")+" "+F(amt)+" → "+(pn?pn.name:""));render();}
+toast("已录入 "+(type==="IN"?"进账":"出账")+" "+cS(txCur(_nt))+F(amt)+" → "+(pn?pn.name:"")+(_nt.cur?" · 入账"+_nt.cur+"账户(跨币种)":""));render();}
 
 // ═══ FINANCE INTERNAL: 收入成本汇总 ═══
 function rIntRev(el){

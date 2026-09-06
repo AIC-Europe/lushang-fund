@@ -844,8 +844,9 @@ function syncLedgerToPlan(pid){
     if(it.type==="pr")prM[mo]+=it.amount;
     else ppM[mo]+=it.amount;
   });
-  // 仅覆盖有台账数据的月份
-  for(var m=0;m<12;m++){if(prM[m]>0)P[idx].pr[m]=prM[m];if(ppM[m]>0)P[idx].pp[m]=ppM[m];}
+  // 仅覆盖有台账数据的月份; 用户手动修改过的月份(prOv/ppOv标记)不覆盖, 手动值优先
+  var prOv=P[idx].prOv||{},ppOv=P[idx].ppOv||{};
+  for(var m=0;m<12;m++){if(prM[m]>0&&!prOv[m])P[idx].pr[m]=prM[m];if(ppM[m]>0&&!ppOv[m])P[idx].pp[m]=ppM[m];}
 }
 function isWithin10Days(dateStr){if(!dateStr)return false;var d=new Date(dateStr),now=new Date();var diff=(d-now)/(86400000);return diff>=0&&diff<=10;}
 // 回款是否已完结: 实回日期已填且有回款(容忍手续费等小额差异) 或 已回金额>=应回金额
@@ -870,7 +871,7 @@ if((ver||0)<TX_VER)return true;
 for(var i=0;i<TX.length;i++){var t=TX[i];if(t&&t.date==="2026-07-31"&&t.type==="IN"&&Math.abs(t.amount-819.47)<0.005)return false;}
 return true;}
 function _collectState(){
-  var pd={};P.forEach(function(p,i){pd[i]={pr:p.pr,pp:p.pp};});
+  var pd={};P.forEach(function(p,i){pd[i]={pr:p.pr,pp:p.pp,prOv:p.prOv||{},ppOv:p.ppOv||{}};});
   return {
     tx:TX, txVer:TX_VER,
     exp:(typeof EXP!=="undefined"?EXP:[]),
@@ -900,7 +901,10 @@ if(typeof migrateLedgerVat10==="function"&&migrateLedgerVat10())window._rcMigrat
 if(_lgStale){var _lgAdded=(typeof mergeSeedIntoLedger==="function")?mergeSeedIntoLedger():0;
 if(_lgAdded&&typeof toast==="function")setTimeout(function(){toast("已合并 "+_lgAdded+" 个台账订单(种子v"+LEDGER_VER+")");},1800);
 window._txSeedMergedInApply=true;}}
-    if(s.plans){Object.keys(s.plans).forEach(function(k){var i=parseInt(k);if(P[i]){if(s.plans[k].pr)P[i].pr=s.plans[k].pr;if(s.plans[k].pp)P[i].pp=s.plans[k].pp;}});}
+    if(s.plans){Object.keys(s.plans).forEach(function(k){var i=parseInt(k);if(P[i]){if(s.plans[k].pr)P[i].pr=s.plans[k].pr;if(s.plans[k].pp)P[i].pp=s.plans[k].pp;
+// Firebase会把数字键对象转成数组(空洞为null), 统一转回对象
+var _no=function(o){var r={};if(!o)return r;if(Array.isArray(o)){o.forEach(function(v,ix){if(v)r[ix]=1;});}else{Object.keys(o).forEach(function(kk){if(o[kk])r[kk]=1;});}return r;};
+P[i].prOv=_no(s.plans[k].prOv);P[i].ppOv=_no(s.plans[k].ppOv);}});}
     if(Array.isArray(s.reimbDaily)){REIMB_DATA=s.reimbDaily;REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});}
     if(Array.isArray(s.reimbTravel)){TRAVEL_DATA=s.reimbTravel;TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});}
     if(Array.isArray(s.datevImported)){DATEV_IMPORTED=s.datevImported;if(typeof rebuildDR==="function")rebuildDR();}
@@ -970,7 +974,7 @@ function updateCloudBadge(){
   else{el.innerHTML='<span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block"></span> 连接中…';el.title="正在连接云端…";}
 }
 // 本地保存(原 savD 逻辑保留, 供离线副本与云端落地复用)
-function savDLocal(){try{localStorage.setItem("ls-fund-tx4",JSON.stringify(TX));localStorage.setItem("ls-fund-tx-ver",String(TX_VER));localStorage.setItem("ls-fund-ex4",JSON.stringify(EXP));localStorage.setItem("ls-fund-rc1",JSON.stringify(RC));localStorage.setItem("ls-fund-ledger1",JSON.stringify(LEDGER));localStorage.setItem("ls-fund-ledger-ver",String(LEDGER_VER));var pd={};P.forEach(function(p,i){pd[i]={pr:p.pr,pp:p.pp};});localStorage.setItem("ls-fund-plan2",JSON.stringify(pd));}catch(e){}}
+function savDLocal(){try{localStorage.setItem("ls-fund-tx4",JSON.stringify(TX));localStorage.setItem("ls-fund-tx-ver",String(TX_VER));localStorage.setItem("ls-fund-ex4",JSON.stringify(EXP));localStorage.setItem("ls-fund-rc1",JSON.stringify(RC));localStorage.setItem("ls-fund-ledger1",JSON.stringify(LEDGER));localStorage.setItem("ls-fund-ledger-ver",String(LEDGER_VER));var pd={};P.forEach(function(p,i){pd[i]={pr:p.pr,pp:p.pp,prOv:p.prOv||{},ppOv:p.ppOv||{}};});localStorage.setItem("ls-fund-plan2",JSON.stringify(pd));}catch(e){}}
 function savReimbLocal(){try{localStorage.setItem("ls-reimb-daily2",JSON.stringify(REIMB_DATA));localStorage.setItem("ls-reimb-travel2",JSON.stringify(TRAVEL_DATA));}catch(e){}}
 // 外部账DATEV导入数据: 本地离线副本(云端同步走 _collectState/_applyState)
 function savDatevLocal(){try{localStorage.setItem("ls-datev-imported1",JSON.stringify(DATEV_IMPORTED));}catch(e){}}
@@ -1137,7 +1141,7 @@ if(_extra.length){_extra.forEach(function(t){t.id=TXI++;if(!t.party)t.party="";i
 }}catch(_me){}
 TXI=1;TX.forEach(function(t){if(t.id>=TXI)TXI=t.id+1;});
 }
-var e=localStorage.getItem("ls-fund-ex4");if(e){EXP=JSON.parse(e);EXI=1;EXP.forEach(function(x){if(x.id>=EXI)EXI=x.id+1;});}var rc=localStorage.getItem("ls-fund-rc1");if(rc){RC=JSON.parse(rc);RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});}var lg=localStorage.getItem("ls-fund-ledger1");var lv=localStorage.getItem("ls-fund-ledger-ver");if(lg&&lv&&parseInt(lv)>=LEDGER_VER){var ld=JSON.parse(lg);for(var lk in ld){if(Array.isArray(ld[lk]))LEDGER[lk]=ld[lk];}if(typeof sanitizeLedger==="function")sanitizeLedger();}var pl=localStorage.getItem("ls-fund-plan2");if(pl){var pd=JSON.parse(pl);Object.keys(pd).forEach(function(k){var i=parseInt(k);if(P[i]){P[i].pr=pd[k].pr;P[i].pp=pd[k].pp;}});}}catch(e){}}
+var e=localStorage.getItem("ls-fund-ex4");if(e){EXP=JSON.parse(e);EXI=1;EXP.forEach(function(x){if(x.id>=EXI)EXI=x.id+1;});}var rc=localStorage.getItem("ls-fund-rc1");if(rc){RC=JSON.parse(rc);RCI=2000;RC.forEach(function(r){if(r.id>=RCI)RCI=r.id+1;});}var lg=localStorage.getItem("ls-fund-ledger1");var lv=localStorage.getItem("ls-fund-ledger-ver");if(lg&&lv&&parseInt(lv)>=LEDGER_VER){var ld=JSON.parse(lg);for(var lk in ld){if(Array.isArray(ld[lk]))LEDGER[lk]=ld[lk];}if(typeof sanitizeLedger==="function")sanitizeLedger();}var pl=localStorage.getItem("ls-fund-plan2");if(pl){var pd=JSON.parse(pl);Object.keys(pd).forEach(function(k){var i=parseInt(k);if(P[i]){P[i].pr=pd[k].pr;P[i].pp=pd[k].pp;P[i].prOv=pd[k].prOv||{};P[i].ppOv=pd[k].ppOv||{};}});}}catch(e){}}
 var SECTION="fund"; // "fund" or "fin" or "biz"
 var FIN_SUB="ext"; // "ext"=外部账, "int"=内部账
 var NAV_FUND=[["dashboard","◉","总览"],["main","▦","资金需求主表"],["bank","⊞","银行账户"],["gap","⇄","月度资金缺口"],["kanban","☷","项目看板"],["chart","◈","可视化"],["backup","☁","数据备份"]];
@@ -1504,9 +1508,16 @@ _planSaving=true;
 var label=editCell.field==="pr"?"回款计划":"付款计划";
 var mo=(editCell.col+1)+"月";
 var sym=cS(P[editCell.idx].cur);
-if(!confirm("确认修改 "+P[editCell.idx].name+" "+mo+" "+label+"？\n\n原值: "+sym+F(old)+"\n新值: "+sym+F(v))){_planSaving=false;editCell=null;render();return;}
-P[editCell.idx][editCell.field][editCell.col]=v;
-editCell=null;_planSaving=false;savD();toast("计划数据已更新");render();}
+if(!confirm("确认修改 "+P[editCell.idx].name+" "+mo+" "+label+"？\n\n原值: "+sym+F(old)+"\n新值: "+sym+F(v)+"\n\n注: 手动修改后该月不再随业务台账自动同步，\n可点击数字旁的 ↺ 恢复台账自动同步。")){_planSaving=false;editCell=null;render();return;}
+var _f=editCell.field;
+P[editCell.idx][_f+"Ov"]=P[editCell.idx][_f+"Ov"]||{};
+P[editCell.idx][_f+"Ov"][editCell.col]=1;
+P[editCell.idx][_f][editCell.col]=v;
+editCell=null;_planSaving=false;savD();toast("计划数据已更新(手动值·不随台账同步)");render();}
+function clearPlanOv(idx,field,col){
+if(!confirm("恢复 "+P[idx].name+" "+(col+1)+"月 "+(field==="pr"?"回款计划":"付款计划")+" 为台账自动同步？\n\n当前手动值将被台账汇总值覆盖。"))return;
+var ov=P[idx][field+"Ov"];if(ov)delete ov[col];
+savD();toast("已恢复台账自动同步");render();}
 function planKey(e){if(e.key==="Enter"){e.preventDefault();savePlan();}if(e.key==="Escape"){editCell=null;render();}}
 function saveEditTx(id){
 var t=TX.filter(function(x){return x.id===id;})[0];if(!t)return;
@@ -2264,9 +2275,9 @@ cb.rows.forEach(function(r){
       g.items.forEach(function(it){
         h+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #F0ECE6;font-size:10px">';
         h+='<span class="m" style="width:72px;color:#8B7355;flex-shrink:0">'+it.d+'</span>';
-        h+='<span style="min-width:80px;max-width:180px;font-weight:500;color:#2D1F1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">'+it.name+'</span>';
+        h+='<span style="min-width:80px;max-width:180px;font-weight:500;color:#2D1F1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">'+esc(it.name)+'</span>';
         if(it.proj){h+='<span style="font-size:8px;color:#3B82F6;background:rgba(59,130,246,.08);padding:1px 4px;border-radius:2px;flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();go(\'p_'+it.pid+'\')">'+it.proj+'</span>';}
-        h+='<span style="flex:1;color:#8B7355;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px">'+it.note+'</span>';
+        h+='<span style="flex:1;color:#8B7355;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px">'+esc(it.note)+'</span>';
         h+='<span class="m" style="font-weight:600;flex-shrink:0;color:'+g.color+'">'+sym+F(it.amt)+'</span>';
         h+='</div>';
       });
@@ -3377,9 +3388,9 @@ h+='<div style="display:flex;gap:6px;justify-content:flex-end"><button class="bt
 h+='</td></tr>';
 }else{
 h+='<tr>';
-h+='<td style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.party)+'">'+r.party+'</td>';
-h+='<td style="font-size:9px;color:#6B7280;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="'+esc(r.contract)+'">'+r.contract+'</td>';
-h+='<td style="font-size:9px;color:#6B7280">'+r.inv_no+'</td>';
+h+='<td style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.party)+'">'+esc(r.party)+'</td>';
+h+='<td style="font-size:9px;color:#6B7280;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="'+esc(r.contract)+'">'+esc(r.contract)+'</td>';
+h+='<td style="font-size:9px;color:#6B7280">'+esc(r.inv_no)+'</td>';
 h+='<td class="m" style="color:#8B7355;font-size:9px">'+r.inv_date+'</td>';
 h+='<td class="tr m" style="font-size:10px">'+sym+F(r.net)+'</td>';
 h+='<td style="font-size:9px;color:#8B7355;text-align:center">'+r.tax_rate+'%</td>';
@@ -3419,12 +3430,12 @@ if(rcIn5.length){h+='<div class="pn" style="margin-bottom:14px"><div class="ph" 
 h+='<div style="overflow-x:auto"><table><thead><tr><th>供应商/客户</th><th>合同号</th><th>发票号</th><th>发票日期</th><th class="tr">净额</th><th>税率</th><th class="tr">含税金额</th><th>付款日期</th><th class="tr">付款金额</th><th></th></tr></thead><tbody>';
 rcIn5.forEach(function(r){
 if(editRCId===r.id){h+='<tr style="background:#FFFBF0"><td colspan="10" style="padding:10px"><div style="font-size:10px;color:#C8963E;font-weight:600;margin-bottom:8px">✏️ 编辑</div><div style="display:grid;grid-template-columns:80px 1fr;gap:6px;margin-bottom:6px"><div><div style="font-size:8px;color:#8B7355">类型</div><select class="fi" id="eRCType" style="font-size:10px"><option value="IN"'+(r.type==="IN"?" selected":"")+'>收入</option><option value="OUT"'+(r.type==="OUT"?" selected":"")+'>成本</option></select></div><div><div style="font-size:8px;color:#8B7355">供应商/客户</div><input class="fi" id="eRCParty" value="'+esc(r.party)+'" style="font-size:10px"></div></div><div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:6px;margin-bottom:6px"><div><div style="font-size:8px;color:#8B7355">合同号</div><input class="fi" id="eRCContract" value="'+esc(r.contract)+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">发票号</div><input class="fi" id="eRCInvNo" value="'+esc(r.inv_no)+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">发票日期</div><input class="fi" type="date" id="eRCInvDate" value="'+r.inv_date+'" style="font-size:10px"></div></div><div style="display:grid;grid-template-columns:100px 60px 100px 100px 100px 1fr;gap:6px;margin-bottom:6px"><div><div style="font-size:8px;color:#8B7355">净额</div><input class="fi m" type="number" step="0.01" id="eRCNet" value="'+r.net+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">税率</div><select class="fi" id="eRCTax" style="font-size:10px"><option value="0"'+(r.tax_rate===0?" selected":"")+'>0%</option><option value="7"'+(r.tax_rate===7?" selected":"")+'>7%</option><option value="19"'+(r.tax_rate===19?" selected":"")+'>19%</option></select></div><div><div style="font-size:8px;color:#8B7355">含税金额</div><input class="fi m" type="number" step="0.01" id="eRCGross" value="'+r.gross+'" style="font-size:10px;font-weight:700"></div><div><div style="font-size:8px;color:#8B7355">付款日期</div><input class="fi" type="date" id="eRCPayDate" value="'+(r.pay_date||"")+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">付款金额</div><input class="fi m" type="number" step="0.01" id="eRCPayAmt" value="'+(r.pay_amt||"")+'" style="font-size:10px"></div><div><div style="font-size:8px;color:#8B7355">备注</div><input class="fi" id="eRCNote" value="'+esc(r.note)+'" style="font-size:10px"></div></div><div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn bs" onclick="saveEditRC('+r.id+')" style="font-size:10px;padding:4px 12px">保存</button><button class="btn bg2" onclick="cancelEditRC()" style="font-size:10px;padding:4px 10px">取消</button></div></td></tr>';}else{
-h+='<tr><td style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.party)+'">'+r.party+'</td><td style="font-size:9px;color:#6B7280;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="'+esc(r.contract)+'">'+r.contract+'</td><td style="font-size:9px;color:#6B7280">'+r.inv_no+'</td><td class="m" style="color:#8B7355;font-size:9px">'+r.inv_date+'</td><td class="tr m" style="font-size:10px">$'+F(r.net)+'</td><td style="font-size:9px;color:#8B7355;text-align:center">'+r.tax_rate+'%</td><td class="tr m" style="font-weight:600;color:#059669;font-size:10px">$'+F(r.gross)+'</td><td class="m" style="color:'+(r.pay_date?"#059669":"#A8998E")+';font-size:9px">'+(r.pay_date||"—")+'</td><td class="tr m" style="font-size:10px;color:'+(r.pay_amt?"#059669":"#A8998E")+'">'+(r.pay_amt?"$"+F(r.pay_amt):"—")+'</td><td style="white-space:nowrap"><button class="tx-del" onclick="startEditRC('+r.id+')" title="编辑" style="color:#C8963E;opacity:.6">✎</button><button class="tx-del" onclick="delRC('+r.id+',5)" title="删除">✕</button></td></tr>';}});
+h+='<tr><td style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.party)+'">'+esc(r.party)+'</td><td style="font-size:9px;color:#6B7280;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="'+esc(r.contract)+'">'+esc(r.contract)+'</td><td style="font-size:9px;color:#6B7280">'+esc(r.inv_no)+'</td><td class="m" style="color:#8B7355;font-size:9px">'+r.inv_date+'</td><td class="tr m" style="font-size:10px">$'+F(r.net)+'</td><td style="font-size:9px;color:#8B7355;text-align:center">'+r.tax_rate+'%</td><td class="tr m" style="font-weight:600;color:#059669;font-size:10px">$'+F(r.gross)+'</td><td class="m" style="color:'+(r.pay_date?"#059669":"#A8998E")+';font-size:9px">'+(r.pay_date||"—")+'</td><td class="tr m" style="font-size:10px;color:'+(r.pay_amt?"#059669":"#A8998E")+'">'+(r.pay_amt?"$"+F(r.pay_amt):"—")+'</td><td style="white-space:nowrap"><button class="tx-del" onclick="startEditRC('+r.id+')" title="编辑" style="color:#C8963E;opacity:.6">✎</button><button class="tx-del" onclick="delRC('+r.id+',5)" title="删除">✕</button></td></tr>';}});
 h+='</tbody></table></div></div>';}
 if(rcOut5.length){h+='<div class="pn" style="margin-bottom:14px"><div class="ph" style="color:#DC2626"><span style="font-weight:700">成本明细 ('+rcOut5.length+'笔)</span><span class="m" style="font-size:11px;margin-left:8px">$'+FK(totOut5)+'</span></div>';
 h+='<div style="overflow-x:auto"><table><thead><tr><th>供应商/客户</th><th>合同号</th><th>发票号</th><th>发票日期</th><th class="tr">净额</th><th>税率</th><th class="tr">含税金额</th><th>付款日期</th><th class="tr">付款金额</th><th></th></tr></thead><tbody>';
 rcOut5.forEach(function(r){
-h+='<tr><td style="font-size:10px">'+r.party+'</td><td style="font-size:9px;color:#6B7280">'+r.contract+'</td><td style="font-size:9px;color:#6B7280">'+r.inv_no+'</td><td class="m" style="color:#8B7355;font-size:9px">'+r.inv_date+'</td><td class="tr m" style="font-size:10px">$'+F(r.net)+'</td><td style="font-size:9px;color:#8B7355;text-align:center">'+r.tax_rate+'%</td><td class="tr m" style="font-weight:600;color:#DC2626;font-size:10px">$'+F(r.gross)+'</td><td class="m" style="color:'+(r.pay_date?"#059669":"#A8998E")+';font-size:9px">'+(r.pay_date||"—")+'</td><td class="tr m" style="font-size:10px;color:'+(r.pay_amt?"#059669":"#A8998E")+'">'+(r.pay_amt?"$"+F(r.pay_amt):"—")+'</td><td style="white-space:nowrap"><button class="tx-del" onclick="startEditRC('+r.id+')" title="编辑" style="color:#C8963E;opacity:.6">✎</button><button class="tx-del" onclick="delRC('+r.id+',5)" title="删除">✕</button></td></tr>';});
+h+='<tr><td style="font-size:10px">'+esc(r.party)+'</td><td style="font-size:9px;color:#6B7280">'+esc(r.contract)+'</td><td style="font-size:9px;color:#6B7280">'+esc(r.inv_no)+'</td><td class="m" style="color:#8B7355;font-size:9px">'+r.inv_date+'</td><td class="tr m" style="font-size:10px">$'+F(r.net)+'</td><td style="font-size:9px;color:#8B7355;text-align:center">'+r.tax_rate+'%</td><td class="tr m" style="font-weight:600;color:#DC2626;font-size:10px">$'+F(r.gross)+'</td><td class="m" style="color:'+(r.pay_date?"#059669":"#A8998E")+';font-size:9px">'+(r.pay_date||"—")+'</td><td class="tr m" style="font-size:10px;color:'+(r.pay_amt?"#059669":"#A8998E")+'">'+(r.pay_amt?"$"+F(r.pay_amt):"—")+'</td><td style="white-space:nowrap"><button class="tx-del" onclick="startEditRC('+r.id+')" title="编辑" style="color:#C8963E;opacity:.6">✎</button><button class="tx-del" onclick="delRC('+r.id+',5)" title="删除">✕</button></td></tr>';});
 h+='</tbody></table></div></div>';}
 h+='</div>';}
 el.innerHTML=h;}
@@ -3564,10 +3575,10 @@ feeTx.forEach(function(t){var isIn=t.type==="IN",cur=t.pid===99?"EUR":t.pid===97
 h+='<tr><td class="m" style="color:#8B7355;font-size:10px">'+t.date+'</td>';
 h+='<td><span class="tag" style="background:'+(isIn?"rgba(5,150,105,.1);color:#059669":"rgba(220,38,38,.1);color:#DC2626")+'">'+(isIn?"进账":"出账")+'</span></td>';
 h+='<td><span class="tag tag-'+cur.toLowerCase()+'">'+cur+'</span></td>';
-h+='<td style="font-size:10px;font-weight:500">'+(t.note||"其他")+'</td>';
+h+='<td style="font-size:10px;font-weight:500">'+esc(t.note||"其他")+'</td>';
 h+='<td style="font-size:10px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.party||"—")+'</td>';
 h+='<td class="tr m" style="font-weight:600;color:'+(isIn?"#059669":"#DC2626")+'">'+(isIn?"+":"-")+sym+F(t.amount)+'</td>';
-h+='<td style="font-size:9px;color:#8B7355;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(t.remark||"—")+'</td></tr>';});
+h+='<td style="font-size:9px;color:#8B7355;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.remark||"—")+'</td></tr>';});
 h+='</tbody></table></div>';}h+='</div>';
 el.innerHTML=h;}
 function rIntExpOps(el){
@@ -4261,7 +4272,7 @@ h+='<div style="overflow-x:auto"><table><thead><tr><th style="width:100px">类�
 h+='<tr style="background:'+r.bg+'"><td style="font-weight:500;font-size:10px;color:#6B5D52">'+r.c;
 if(r.edit)h+=' <span style="font-size:7px;color:#3B82F6;font-weight:700;background:rgba(59,130,246,.08);padding:1px 3px;border-radius:2px">可编辑</span>';
 if(r.src)h+=' <span style="font-size:7px;color:#059669;font-weight:700;background:rgba(5,150,105,.08);padding:1px 3px;border-radius:2px">'+r.src+'</span>';h+='</td>';
-for(var i=0;i<12;i++){if(r.edit&&editCell&&editCell.idx===pIdx&&editCell.field===r.f&&editCell.col===i){h+='<td class="tr" style="padding:2px"><input id="planInput" type="number" step="0.01" value="'+r.d[i]+'" onblur="savePlan()" onkeydown="planKey(event)" class="fi m" style="width:80px;font-size:10px;padding:3px 4px;text-align:right"></td>';}else if(r.edit){h+='<td class="tr m" style="font-size:10px;cursor:pointer" onclick="editPlan('+pIdx+',\''+r.f+'\','+i+')" title="点击编辑"><span style="border-bottom:1px dashed #3B82F6;color:#2D1F1A">'+curSym+F(r.d[i])+'</span></td>';}else{h+='<td class="tr m" style="font-size:10px">'+curSym+F(r.d[i])+'</td>';}}
+for(var i=0;i<12;i++){var _ov=r.edit&&r.f&&(pp[r.f+"Ov"]||{})[i];if(r.edit&&editCell&&editCell.idx===pIdx&&editCell.field===r.f&&editCell.col===i){h+='<td class="tr" style="padding:2px"><input id="planInput" type="number" step="0.01" value="'+r.d[i]+'" onblur="savePlan()" onkeydown="planKey(event)" class="fi m" style="width:80px;font-size:10px;padding:3px 4px;text-align:right"></td>';}else if(r.edit){h+='<td class="tr m" style="font-size:10px;cursor:pointer" onclick="editPlan('+pIdx+',\''+r.f+'\','+i+')" title="'+(_ov?"手动值(不随台账同步) · 点击编辑":"点击编辑")+'"><span style="border-bottom:1px dashed '+(_ov?"#C8963E":"#3B82F6")+';color:#2D1F1A">'+curSym+F(r.d[i])+'</span>'+(_ov?'<span onclick="event.stopPropagation();clearPlanOv('+pIdx+',\''+r.f+'\','+i+')" title="恢复台账自动同步" style="font-size:9px;color:#C8963E;cursor:pointer;margin-left:2px">↺</span>':'')+'</td>';}else{h+='<td class="tr m" style="font-size:10px">'+curSym+F(r.d[i])+'</td>';}}
 h+='<td class="tr m" style="font-weight:700;font-size:10px">'+curSym+F(t)+'</td></tr>';});
 h+='<tr class="totr"><td style="font-size:10px;color:#8B2332;font-weight:700">净现金流</td>';var tn2=0;for(var i=0;i<12;i++){var v2=pp.pr[i]-pp.pp[i];tn2+=v2;h+='<td class="tr m" style="font-size:10px;color:'+(v2>=0?"#059669":"#DC2626")+'">'+curSym+F(v2)+'</td>';}h+='<td class="tr m" style="font-weight:700;color:'+(tn2>=0?"#059669":"#DC2626")+'">'+curSym+F(tn2)+'</td></tr>';
 h+='</tbody></table></div></div>';}

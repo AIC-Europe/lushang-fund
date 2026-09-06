@@ -903,11 +903,13 @@ if(_lgAdded&&typeof toast==="function")setTimeout(function(){toast("已合并 "+
 window._txSeedMergedInApply=true;}}
     if(s.plans){Object.keys(s.plans).forEach(function(k){var i=parseInt(k);if(P[i]){if(s.plans[k].pr)P[i].pr=s.plans[k].pr;if(s.plans[k].pp)P[i].pp=s.plans[k].pp;
 // Firebase会把数字键对象转成数组(空洞为null), 统一转回对象
-var _no=function(o){var r={};if(!o)return r;if(Array.isArray(o)){o.forEach(function(v,ix){if(v)r[ix]=1;});}else{Object.keys(o).forEach(function(kk){if(o[kk])r[kk]=1;});}return r;};
+var _no=function(o){var r={};if(!o||typeof o!=="object")return r;if(Array.isArray(o)){o.forEach(function(v,ix){if(v)r[ix]=1;});}else{Object.keys(o).forEach(function(kk){if(o[kk])r[kk]=1;});}return r;};
 P[i].prOv=_no(s.plans[k].prOv);P[i].ppOv=_no(s.plans[k].ppOv);}});}
     if(Array.isArray(s.reimbDaily)){REIMB_DATA=s.reimbDaily;REIMB_ID=1;REIMB_DATA.forEach(function(r){if(r.id>=REIMB_ID)REIMB_ID=r.id+1;});}
     if(Array.isArray(s.reimbTravel)){TRAVEL_DATA=s.reimbTravel;TRAVEL_ID=1;TRAVEL_DATA.forEach(function(r){if(r.id>=TRAVEL_ID)TRAVEL_ID=r.id+1;});}
     if(Array.isArray(s.datevImported)){DATEV_IMPORTED=s.datevImported;if(typeof rebuildDR==="function")rebuildDR();}
+    // 云端数据(可能含同事的台账修改)落地后, 立即做全局台账→计划同步, 手动修改月份仍受Ov保护
+    if(typeof syncAllLedgerPlans==="function")syncAllLedgerPlans();
 
     // 同步落地到本地, 保证离线时也有最新副本
     try{savDLocal();if(typeof savReimb==="function")savReimbLocal();if(typeof savDatevLocal==="function")savDatevLocal();}catch(e){}
@@ -1126,7 +1128,9 @@ function rBackup(el){
 }
 
 
-function savD(){savDLocal();if(!_cloudApplying)cloudPush();}
+// 全局台账→计划同步: 保证资金需求/总览/缺口等汇总板块随时读到最新计划(手动修改月份受Ov标记保护不被覆盖)
+function syncAllLedgerPlans(){try{P.forEach(function(p){if(LEDGER[p.id]&&LEDGER[p.id].length)syncLedgerToPlan(p.id);});}catch(e){}}
+function savD(){syncAllLedgerPlans();savDLocal();if(!_cloudApplying)cloudPush();}
 function lodD(){try{var d=localStorage.getItem("ls-fund-tx4");var tv=localStorage.getItem("ls-fund-tx-ver");
 if(d&&tv&&parseInt(tv)>=TX_VER){TX=JSON.parse(d);TXI=1;TX.forEach(function(t){if(t.id>=TXI)TXI=t.id+1;if(!t.party)t.party="";if(!t.remark)t.remark="";});
 if(_txSeedStale(parseInt(tv))){var _a=mergeSeedIntoTX();if(_a){savDLocal();if(typeof toast==="function")setTimeout(function(){toast("已合并 "+_a+" 笔新导入流水");},1200);}}}
@@ -1419,7 +1423,7 @@ function getRCbyPid(pid){return RC.filter(function(r){return r.pid===pid;}).sort
 function getRCsum(pid,type){var m=new Array(12).fill(0);RC.forEach(function(r){if(r.pid===pid&&r.type===type){var mo=parseInt((r.inv_date||r.pay_date||"").split("-")[1]||"0",10)-1;if(mo>=0&&mo<12)m[mo]+=r.gross;}});return m;}
 var ROLE="";
 var _cloudInitDone=false; // 云端首次数据是否已到达
-function login(n,role){U=n;ROLE=role||"admin";document.getElementById("LS").style.display="none";document.getElementById("AS").style.display="flex";document.getElementById("UB").innerHTML='<div style="width:5px;height:5px;border-radius:50%;background:#0ea5e9"></div>'+n;lodD();lodReimb();if(typeof lodDatevLocal==="function")lodDatevLocal();
+function login(n,role){U=n;ROLE=role||"admin";document.getElementById("LS").style.display="none";document.getElementById("AS").style.display="flex";document.getElementById("UB").innerHTML='<div style="width:5px;height:5px;border-radius:50%;background:#0ea5e9"></div>'+n;lodD();lodReimb();if(typeof lodDatevLocal==="function")lodDatevLocal();if(typeof syncAllLedgerPlans==="function")syncAllLedgerPlans();
 // 先启动云端监听(让云端数据有机会覆盖本地旧数据), 再延迟执行迁移
 bNav();render();bMT();updateCloudBadge();
 if(!window._cloudStarted){window._cloudStarted=true;_cloudInitDone=false;cloudStart();}

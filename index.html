@@ -1512,7 +1512,8 @@ _planSaving=true;
 var label=editCell.field==="pr"?"回款计划":"付款计划";
 var mo=(editCell.col+1)+"月";
 var sym=cS(P[editCell.idx].cur);
-if(!confirm("确认修改 "+P[editCell.idx].name+" "+mo+" "+label+"？\n\n原值: "+sym+F(old)+"\n新值: "+sym+F(v)+"\n\n注: 手动修改后该月不再随业务台账自动同步，\n可点击数字旁的 ↺ 恢复台账自动同步。")){_planSaving=false;editCell=null;render();return;}
+var _pf=function(x){return sym+(x===0?"0.00":F(x))+(x===0?" (清零)":"");};
+if(!confirm("确认修改 "+P[editCell.idx].name+" "+mo+" "+label+"？\n\n原值: "+_pf(old)+"\n新值: "+_pf(v)+"\n\n注: 手动修改后该月不再随业务台账自动同步，\n可点击数字旁的 ↺ 恢复台账自动同步。")){_planSaving=false;editCell=null;render();return;}
 var _f=editCell.field;
 P[editCell.idx][_f+"Ov"]=P[editCell.idx][_f+"Ov"]||{};
 P[editCell.idx][_f+"Ov"][editCell.col]=1;
@@ -4270,13 +4271,16 @@ h+='<div style="padding:12px 16px;text-align:center;border-top:1px solid #E8DCC8
 // Render plan table function
 function renderPlanTable(pIdx,curSym,label){
 var pp=P[pIdx],parr=gAct(pp.id,"IN"),papr=gAct(pp.id,"OUT");
+// 台账各月是否有排期: ↺(恢复台账同步)仅在该月确有台账数据时显示, 避免误导
+var _lmPr=new Array(12).fill(false),_lmPp=new Array(12).fill(false);
+try{(getLedgerPlanItems(pp.id)||[]).forEach(function(it){if(!it.date)return;var m=parseInt(it.date.substring(5,7))-1;if(m<0||m>11)return;if(it.type==="pr")_lmPr[m]=true;else _lmPp[m]=true;});}catch(e){}
 h+='<div class="pn" style="margin-bottom:14px;border-radius:0 0 10px 10px;margin-top:0"><div class="ph"><span style="font-weight:700">'+(label||"📊 月度计划与实际对比")+'</span><span style="font-size:9px;color:#C8963E;margin-left:8px">点击蓝色虚线数字可编辑</span></div>';
 h+='<div style="overflow-x:auto"><table><thead><tr><th style="width:100px">类别</th>';MONTHS.forEach(function(m){h+='<th class="tr">'+m+'</th>';});h+='<th class="tr" style="font-weight:700">合计</th></tr></thead><tbody>';
 [{c:"回款计划",f:"pr",d:pp.pr,bg:"#FAFAFA",edit:1},{c:"实际回款",d:parr,bg:"#F0FAF0",src:"财务"},{c:"付款计划",f:"pp",d:pp.pp,bg:"#FFF8F0",edit:1},{c:"实际付款",d:papr,bg:"#FFFDF5",src:"财务"}].forEach(function(r){var t=sA(r.d);
 h+='<tr style="background:'+r.bg+'"><td style="font-weight:500;font-size:10px;color:#6B5D52">'+r.c;
 if(r.edit)h+=' <span style="font-size:7px;color:#3B82F6;font-weight:700;background:rgba(59,130,246,.08);padding:1px 3px;border-radius:2px">可编辑</span>';
 if(r.src)h+=' <span style="font-size:7px;color:#059669;font-weight:700;background:rgba(5,150,105,.08);padding:1px 3px;border-radius:2px">'+r.src+'</span>';h+='</td>';
-for(var i=0;i<12;i++){var _ov=r.edit&&r.f&&(pp[r.f+"Ov"]||{})[i];if(r.edit&&editCell&&editCell.idx===pIdx&&editCell.field===r.f&&editCell.col===i){h+='<td class="tr" style="padding:2px"><input id="planInput" type="number" step="0.01" value="'+r.d[i]+'" onblur="savePlan()" onkeydown="planKey(event)" class="fi m" style="width:80px;font-size:10px;padding:3px 4px;text-align:right"></td>';}else if(r.edit){h+='<td class="tr m" style="font-size:10px;cursor:pointer" onclick="editPlan('+pIdx+',\''+r.f+'\','+i+')" title="'+(_ov?"手动值(不随台账同步) · 点击编辑":"点击编辑")+'"><span style="border-bottom:1px dashed '+(_ov?"#C8963E":"#3B82F6")+';color:#2D1F1A">'+curSym+F(r.d[i])+'</span>'+(_ov?'<span onclick="event.stopPropagation();clearPlanOv('+pIdx+',\''+r.f+'\','+i+')" title="恢复台账自动同步" style="font-size:9px;color:#C8963E;cursor:pointer;margin-left:2px">↺</span>':'')+'</td>';}else{h+='<td class="tr m" style="font-size:10px">'+curSym+F(r.d[i])+'</td>';}}
+for(var i=0;i<12;i++){var _ov=r.edit&&r.f&&(pp[r.f+"Ov"]||{})[i];var _hasLm=r.f==="pr"?_lmPr[i]:_lmPp[i];if(r.edit&&editCell&&editCell.idx===pIdx&&editCell.field===r.f&&editCell.col===i){h+='<td class="tr" style="padding:2px"><input id="planInput" type="number" step="0.01" value="'+r.d[i]+'" onblur="savePlan()" onkeydown="planKey(event)" class="fi m" style="width:80px;font-size:10px;padding:3px 4px;text-align:right"></td>';}else if(r.edit){h+='<td class="tr m" style="font-size:10px;cursor:pointer" onclick="editPlan('+pIdx+',\''+r.f+'\','+i+')" title="'+(_ov?(_hasLm?"手动值(不随台账同步) · 点击编辑":"手动值 · 点击编辑"):"点击编辑")+'"><span style="border-bottom:1px dashed '+(_ov?"#C8963E":"#3B82F6")+';color:#2D1F1A">'+curSym+F(r.d[i])+'</span>'+(_ov&&_hasLm?'<span onclick="event.stopPropagation();clearPlanOv('+pIdx+',\''+r.f+'\','+i+')" title="恢复台账自动同步" style="font-size:9px;color:#C8963E;cursor:pointer;margin-left:2px">↺</span>':'')+'</td>';}else{h+='<td class="tr m" style="font-size:10px">'+curSym+F(r.d[i])+'</td>';}}
 h+='<td class="tr m" style="font-weight:700;font-size:10px">'+curSym+F(t)+'</td></tr>';});
 h+='<tr class="totr"><td style="font-size:10px;color:#8B2332;font-weight:700">净现金流</td>';var tn2=0;for(var i=0;i<12;i++){var v2=pp.pr[i]-pp.pp[i];tn2+=v2;h+='<td class="tr m" style="font-size:10px;color:'+(v2>=0?"#059669":"#DC2626")+'">'+curSym+F(v2)+'</td>';}h+='<td class="tr m" style="font-weight:700;color:'+(tn2>=0?"#059669":"#DC2626")+'">'+curSym+F(tn2)+'</td></tr>';
 h+='</tbody></table></div></div>';}
